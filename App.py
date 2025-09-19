@@ -77,7 +77,7 @@ if sowing_date and current_date:
 
         growth_stage = rules[
             (rules["Crop"] == selected_crop) &
-            (rules["DAS_Min"] <= DAS) & (rules["DAS_Max"] >= DAS)
+            (rules["DAS (Days After Sowing)"] <= DAS) & (rules["DAS (Days After Sowing)"] >= DAS)
         ]
 
         if not growth_stage.empty:
@@ -118,3 +118,4 @@ if sowing_date and current_date:
                 st.info("No sowing period data available for this crop.")
     else:
         st.error("No weather data available for selected filters and dates.")
+
