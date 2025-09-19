@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, date, timedelta
 import urllib.parse
-import matplotlib.pyplot as plt
+import requests
+from io import BytesIO
 
 # Set page configuration
 st.set_page_config(
@@ -24,12 +25,52 @@ st.markdown("""
         margin-bottom: 25px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
+    .card {
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        border: none;
+    }
+    .card-header {
+        background-color: #2c3e50;
+        color: white;
+        border-radius: 10px 10px 0 0 !important;
+        padding: 15px 20px;
+    }
+    .btn-primary {
+        background-color: #3498db;
+        border: none;
+        padding: 12px 25px;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+    .btn-primary:hover {
+        background-color: #2980b9;
+    }
     .advisory-result {
         background-color: #e8f4f8;
         border-left: 4px solid #3498db;
-        padding: 20px;
-        border-radius: 8px;
+        padding: 15px;
+        border-radius: 5px;
         margin-bottom: 20px;
+    }
+    .weather-icon {
+        font-size: 24px;
+        margin-right: 10px;
+        color: #3498db;
+    }
+    .section-title {
+        color: #2c3e50;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .share-link {
+        background-color: #e8f4f8;
+        padding: 10px;
+        border-radius: 5px;
+        word-break: break-all;
+        font-family: monospace;
     }
     .weather-info {
         background-color: #f8f9fa;
@@ -37,6 +78,7 @@ st.markdown("""
         padding: 15px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         height: 100%;
+        text-align: center;
     }
     .location-hierarchy {
         background-color: #e8f4f8;
@@ -46,15 +88,6 @@ st.markdown("""
     }
     .stSelectbox, .stDateInput {
         margin-bottom: 15px;
-    }
-    .stButton button {
-        width: 100%;
-        background: linear-gradient(135deg, #3498db, #2c3e50);
-        color: white;
-        font-weight: 600;
-        border: none;
-        padding: 12px;
-        border-radius: 8px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -67,77 +100,37 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Load sample data (in a real implementation, this would come from Excel files)
+# Load data from GitHub
 @st.cache_data
 def load_data():
-    # Sample districts
-    districts = [
-        'Ahmednagar', 'Pune', 'Nashik', 'Kolhapur', 'Satara', 
-        'Sangli', 'Jalgaon', 'Dhule', 'Nandurbar', 'Jalna',
-        'Aurangabad', 'Beed', 'Latur', 'Osmanabad', 'Nanded',
-        'Parbhani', 'Hingoli', 'Buldhana', 'Akola', 'Amravati',
-        'Wardha', 'Nagpur', 'Bhandara', 'Gondia', 'Gadchiroli',
-        'Chandrapur', 'Yavatmal', 'Washim', 'Thane', 'Palanpur',
-        'Raigad', 'Ratnagiri', 'Sindhudurg'
-    ]
+    # Load weather data
+    weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather.xlsx"
+    weather_response = requests.get(weather_url)
+    weather_df = pd.read_excel(BytesIO(weather_response.content))
     
-    # Sample crops
-    crops = ['Paddy', 'Cotton', 'Jowar', 'Maize', 'Onion', 'Soybean', 'Tur', 'Wheat', 'Sugarcane', 'Groundnut']
+    # Load rules data
+    rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules.xlsx"
+    rules_response = requests.get(rules_url)
+    rules_df = pd.read_excel(BytesIO(rules_response.content))
     
-    # Sample talukas based on district
-    talukas_data = {
-        'Bhandara': ['Bhandara', 'Tumsar', 'Lakhani', 'Mohadi', 'Sakoli'],
-        'Ahmednagar': ['Ahmednagar', 'Parner', 'Sangamner', 'Karjat', 'Shrirampur'],
-        'Pune': ['Pune City', 'Haveli', 'Mulshi', 'Baramati', 'Indapur'],
-        'Default': ['Taluka 1', 'Taluka 2', 'Taluka 3', 'Taluka 4', 'Taluka 5']
-    }
+    # Load sowing calendar data
+    sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar.xlsx"
+    sowing_response = requests.get(sowing_url)
+    sowing_df = pd.read_excel(BytesIO(sowing_response.content))
     
-    # Sample circles based on taluka
-    circles_data = {
-        'Bhandara': ['Bhandara Circle 1', 'Bhandara Circle 2', 'Bhandara Circle 3'],
-        'Tumsar': ['Tumsar Circle 1', 'Tumsar Circle 2'],
-        'Lakhani': ['Lakhani Circle 1', 'Lakhani Circle 2'],
-        'Default': ['Circle 1', 'Circle 2', 'Circle 3', 'Circle 4', 'Circle 5']
-    }
+    # Extract unique districts, talukas, circles, and crops
+    districts = sorted(weather_df['District'].unique())
+    talukas = sorted(weather_df['Taluka'].unique())
+    circles = sorted(weather_df['Circle'].unique())
+    crops = sorted(rules_df['Crop'].unique())
     
-    # Sample weather data (in real implementation, this would come from Excel)
-    # Creating sample weather data for demonstration
-    start_date = date(2024, 1, 1)
-    end_date = date(2024, 12, 31)
-    date_range = pd.date_range(start_date, end_date)
-    
-    weather_data = []
-    for single_date in date_range:
-        weather_data.append({
-            'Date': single_date.strftime('%d-%m-%Y'),
-            'District': 'Bhandara',
-            'Taluka': 'Bhandara',
-            'Circle': 'Bhandara Circle 1',
-            'Rainfall': max(0, np.random.normal(5, 3)),
-            'Tmax': np.random.normal(32, 3),
-            'Tmin': np.random.normal(22, 3),
-            'max_Rh': np.random.normal(80, 5),
-            'min_Rh': np.random.normal(50, 5)
-        })
-    
-    weather_df = pd.DataFrame(weather_data)
-    
-    # Sample rules data
-    rules_data = [
-        {'Crop': 'Paddy', 'Growth_Stage': 'Planting/Transplanting', 'DAS_Start': 0, 'DAS_End': 0, 'Water_Required': 50},
-        {'Crop': 'Paddy', 'Growth_Stage': 'Vegetative (Tillering)', 'DAS_Start': 1, 'DAS_End': 50, 'Water_Required': 300},
-        {'Crop': 'Paddy', 'Growth_Stage': 'Reproductive (Panicle Initiation)', 'DAS_Start': 51, 'DAS_End': 65, 'Water_Required': 200},
-        {'Crop': 'Paddy', 'Growth_Stage': 'Flowering', 'DAS_Start': 66, 'DAS_End': 90, 'Water_Required': 150},
-        {'Crop': 'Paddy', 'Growth_Stage': 'Grain Filling/Maturation', 'DAS_Start': 91, 'DAS_End': 115, 'Water_Required': 100},
-        {'Crop': 'Paddy', 'Growth_Stage': 'Harvest', 'DAS_Start': 116, 'DAS_End': 999, 'Water_Required': 0},
-    ]
-    
-    rules_df = pd.DataFrame(rules_data)
-    
-    return districts, crops, talukas_data, circles_data, weather_df, rules_df
+    return weather_df, rules_df, sowing_df, districts, talukas, circles, crops
 
-# Load data
-districts, crops, talukas_data, circles_data, weather_df, rules_df = load_data()
+try:
+    weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data()
+except:
+    st.error("Error loading data from GitHub. Please check the file URLs.")
+    st.stop()
 
 # Initialize session state
 if 'district' not in st.session_state:
@@ -222,22 +215,30 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
     else:
         advisory = "Adequate water available. No irrigation needed."
     
-    return f"Current growth stage: {stage_name}. {advisory}"
+    return f"Crop is at {stage_name} stage ({das} Days After Sowing). {advisory}"
 
 # Function to get sowing advisory
-def get_sowing_advisory(sowing_date):
+def get_sowing_advisory(sowing_date, sowing_df):
     sowing_dt = datetime.strptime(sowing_date, '%d-%m-%Y')
     sowing_day = sowing_dt.day
     sowing_month = sowing_dt.month
     
-    if sowing_day <= 15:
-        fn = "1FN"
-        advisory = "Early sowing due to rainfall on time / Water source available"
-    else:
-        fn = "2FN"
-        advisory = "Ideal sowing period"
+    # Find sowing advisory from sowing calendar
+    sowing_advisory_data = sowing_df[(sowing_df['Month'] == sowing_month) & (sowing_df['Day_Start'] <= sowing_day) & (sowing_df['Day_End'] >= sowing_day)]
     
-    return f"{fn} (Month Date between {1 if sowing_day <= 15 else 16} to {15 if sowing_day <= 15 else 31}): {advisory}"
+    if not sowing_advisory_data.empty:
+        fn = sowing_advisory_data['FN'].values[0]
+        advisory = sowing_advisory_data['Advisory'].values[0]
+        return f"{fn}: {advisory}"
+    else:
+        if sowing_day <= 15:
+            fn = "1FN"
+            advisory = "Early sowing due to rainfall on time / Water source available"
+        else:
+            fn = "2FN"
+            advisory = "Ideal sowing period"
+        
+        return f"{fn} (Month Date between {1 if sowing_day <= 15 else 16} to {15 if sowing_day <= 15 else 31}): {advisory}"
 
 # Create form for user input
 with st.form("crop_advisory_form"):
@@ -260,7 +261,7 @@ with st.form("crop_advisory_form"):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.subheader("Location Information")
+        st.markdown("### Location Information")
         district = st.selectbox(
             "District *", 
             options=[""] + districts, 
@@ -268,12 +269,13 @@ with st.form("crop_advisory_form"):
             index=districts.index(st.session_state.district) + 1 if st.session_state.district in districts else 0
         )
         
-        # Update taluka options based on district selection
+        # Filter talukas based on district selection
         taluka_options = [""]
-        if district in talukas_data:
-            taluka_options.extend(talukas_data[district])
+        if district:
+            district_talukas = sorted(weather_df[weather_df['District'] == district]['Taluka'].unique())
+            taluka_options.extend(district_talukas)
         else:
-            taluka_options.extend(talukas_data['Default'])
+            taluka_options.extend(talukas)
             
         taluka = st.selectbox(
             "Taluka", 
@@ -283,12 +285,13 @@ with st.form("crop_advisory_form"):
             index=taluka_options.index(st.session_state.taluka) if st.session_state.taluka in taluka_options else 0
         )
         
-        # Update circle options based on taluka selection
+        # Filter circles based on taluka selection
         circle_options = [""]
-        if taluka in circles_data:
-            circle_options.extend(circles_data[taluka])
+        if taluka:
+            taluka_circles = sorted(weather_df[weather_df['Taluka'] == taluka]['Circle'].unique())
+            circle_options.extend(taluka_circles)
         else:
-            circle_options.extend(circles_data['Default'])
+            circle_options.extend(circles)
             
         circle = st.selectbox(
             "Circle", 
@@ -299,7 +302,7 @@ with st.form("crop_advisory_form"):
         )
     
     with col2:
-        st.subheader("Crop Information")
+        st.markdown("### Crop Information")
         crop = st.selectbox(
             "Crop Name *", 
             options=[""] + crops, 
@@ -316,7 +319,7 @@ with st.form("crop_advisory_form"):
         )
     
     with col3:
-        st.subheader("Date Information")
+        st.markdown("### Date Information")
         # Current date with DD-MM-YYYY format
         current_date = st.date_input(
             "Current Date (DD-MM-YYYY) *", 
@@ -371,66 +374,67 @@ if generate_btn:
             metrics = calculate_weather_metrics(weather_df, location_level, location_name, sowing_date_str, current_date_str)
             
             # Display weather information
-            st.subheader("🌤️ Weather Information")
-            st.info(f"Weather data for {location_name} ({location_level}) from {sowing_date_str} to {current_date_str} ({metrics['das']} days)")
+            st.markdown("---")
+            st.markdown("## 🌤️ Weather Information")
             
             col1, col2, col3 = st.columns(3)
             
             with col1:
                 st.markdown("""
-                    <div class="weather-info text-center">
-                        <p><i class="fas fa-cloud-rain weather-icon"></i>Rainfall (mm)</p>
+                    <div class="weather-info">
+                        <p><i class="fas fa-cloud-rain weather-icon"></i>Rainfall</p>
                 """, unsafe_allow_html=True)
                 
-                st.metric("Last Week", f"{metrics['rainfall_last_week']:.1f}")
-                st.metric("Last Month", f"{metrics['rainfall_last_month']:.1f}")
-                st.metric("Since Sowing", f"{metrics['rainfall_das']:.1f}")
+                st.metric("Last Week", f"{metrics['rainfall_last_week']:.1f} mm")
+                st.metric("Last Month", f"{metrics['rainfall_last_month']:.1f} mm")
+                st.metric("Since Sowing", f"{metrics['rainfall_das']:.1f} mm")
                 st.markdown("</div>", unsafe_allow_html=True)
             
             with col2:
                 st.markdown("""
-                    <div class="weather-info text-center">
-                        <p><i class="fas fa-temperature-high weather-icon"></i>Temperature (°C)</p>
+                    <div class="weather-info">
+                        <p><i class="fas fa-temperature-high weather-icon"></i>Temperature</p>
                 """, unsafe_allow_html=True)
                 
-                st.metric("Max Average", f"{metrics['tmax_avg']:.1f}")
-                st.metric("Min Average", f"{metrics['tmin_avg']:.1f}")
+                st.metric("Max", f"{metrics['tmax_avg']:.1f} °C")
+                st.metric("Min", f"{metrics['tmin_avg']:.1f} °C")
                 st.markdown("</div>", unsafe_allow_html=True)
             
             with col3:
                 st.markdown("""
-                    <div class="weather-info text-center">
-                        <p><i class="fas fa-tint weather-icon"></i>Humidity (%)</p>
+                    <div class="weather-info">
+                        <p><i class="fas fa-tint weather-icon"></i>Humidity</p>
                 """, unsafe_allow_html=True)
                 
-                st.metric("Max Average", f"{metrics['max_rh_avg']:.1f}")
-                st.metric("Min Average", f"{metrics['min_rh_avg']:.1f}")
+                st.metric("Max", f"{metrics['max_rh_avg']:.1f} %")
+                st.metric("Min", f"{metrics['min_rh_avg']:.1f} %")
                 st.markdown("</div>", unsafe_allow_html=True)
             
             # Display advisory results
-            st.subheader("📋 Advisory Results")
-            st.success(f"Advisory generated for {crop} in {location_name} ({location_level})")
+            st.markdown("---")
+            st.markdown("## 📋 Advisory Results")
             
             # Sowing advisory
-            sowing_advisory = get_sowing_advisory(sowing_date_str)
-            st.markdown(f"""
-                <div class="advisory-result mb-4">
+            sowing_advisory = get_sowing_advisory(sowing_date_str, sowing_df)
+            st.markdown("""
+                <div class="advisory-result">
                     <h5><i class="fas fa-calendar-check me-2"></i>Sowing Advisory</h5>
-                    <p id="sowingAdvisory" class="mb-0">{sowing_advisory}</p>
+                    <p id="sowingAdvisory" class="mb-0">%s</p>
                 </div>
-            """, unsafe_allow_html=True)
+            """ % sowing_advisory, unsafe_allow_html=True)
             
             # Growth stage advisory
             growth_advisory = get_growth_advisory(crop, metrics['das'], metrics['rainfall_das'], rules_df)
-            st.markdown(f"""
+            st.markdown("""
                 <div class="advisory-result">
                     <h5><i class="fas fa-seedling me-2"></i>Growth Stage Advisory</h5>
-                    <p id="growthAdvisory" class="mb-0">{growth_advisory}</p>
+                    <p id="growthAdvisory" class="mb-0">%s</p>
                 </div>
-            """, unsafe_allow_html=True)
+            """ % growth_advisory, unsafe_allow_html=True)
             
             # Share functionality
-            st.subheader("📤 Share Advisory")
+            st.markdown("---")
+            st.markdown("## 📤 Share Advisory")
             st.write("Share this advisory with others via this link:")
             
             # Generate shareable link
@@ -444,9 +448,14 @@ if generate_btn:
             }
             
             query_string = urllib.parse.urlencode(params)
-            shareable_link = f"{st.experimental_get_query_params().get('_url', [''])[0]}?{query_string}"
+            # For Streamlit sharing, we need to construct the URL properly
+            shareable_link = f"https://share.streamlit.io/your-username/your-repo/main/app.py?{query_string}"
             
-            st.code(shareable_link, language=None)
+            st.markdown(f"""
+                <div class="share-link">
+                    {shareable_link}
+                </div>
+            """, unsafe_allow_html=True)
             
             col1, col2, col3 = st.columns(3)
             
