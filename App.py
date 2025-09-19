@@ -5,9 +5,9 @@ from datetime import datetime
 # Load CSV data
 @st.cache_data
 def load_data():
-    weather = pd.read_excel(r"D:\shareme\New folder\App\weather.xlsx")  # Use relative paths for deployment
-    rules = pd.read_excel(r"D:\shareme\New folder\App\rules.xlsx")
-    sowing_calendar = pd.read_excel(r"D:\shareme\New folder\App\sowing_calendar.xlsx")
+    weather = pd.read_excel("weather.xlsx")  # Use relative paths for deployment
+    rules = pd.read_excel("rules.xlsx")
+    sowing_calendar = pd.read_excel("sowing_calendar.xlsx")
     return weather, rules, sowing_calendar
 
 weather, rules, sowing_calendar = load_data()
@@ -112,4 +112,5 @@ if sowing_date and current_date:
 
     else:
         st.error("No weather data available for selected filters and dates.")
+
 
