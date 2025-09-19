@@ -12,7 +12,7 @@ def load_data():
     # ✅ Fix: Parse Date(DDMMYY) properly
     if "Date(DDMMYY)" in weather.columns:
         weather["Date(DDMMYY)"] = pd.to_datetime(
-            weather["Date(DDMMYY)"].astype(str).str.zfill(6),  # Ensure 6 digits
+            weather["Date(DDMMYY)"].astype(str).str.zfill(6),
             format="%d%m%y",
             errors="coerce"
         )
@@ -43,8 +43,9 @@ selected_circle = st.selectbox("Select Circle", ["All"] + list(circles))
 crops = sorted(sowing_calendar["Crop"].dropna().unique())
 selected_crop = st.selectbox("Select Crop", crops)
 
-sowing_date = st.date_input("Select Sowing Date")
-current_date = st.date_input("Select Current Date", datetime.today())
+# ✅ Use DD/MM/YYYY format in date picker
+sowing_date = st.date_input("Select Sowing Date", format="DD/MM/YYYY")
+current_date = st.date_input("Select Current Date", datetime.today(), format="DD/MM/YYYY")
 
 if sowing_date and current_date:
     DAS = (current_date - sowing_date).days
@@ -59,7 +60,6 @@ if sowing_date and current_date:
     if selected_circle != "All":
         filtered_weather = filtered_weather[filtered_weather["Circle"] == selected_circle]
 
-    # ✅ Filter by DAS window (dates already parsed correctly above)
     filtered_weather = filtered_weather[
         (filtered_weather["Date(DDMMYY)"] >= pd.Timestamp(sowing_date)) &
         (filtered_weather["Date(DDMMYY)"] <= pd.Timestamp(current_date))
@@ -75,7 +75,6 @@ if sowing_date and current_date:
         st.write(f"**Average Temperature:** {avg_temp:.2f} °C")
         st.write(f"**Average Humidity:** {avg_humidity:.2f} %")
 
-        # Determine Growth Stage
         growth_stage = rules[
             (rules["Crop"] == selected_crop) &
             (rules["DAS_Min"] <= DAS) & (rules["DAS_Max"] >= DAS)
@@ -103,7 +102,6 @@ if sowing_date and current_date:
         else:
             st.error("No matching growth stage found for this DAS.")
 
-        # Sowing Calendar Check
         crop_calendar = sowing_calendar[sowing_calendar["Crop"] == selected_crop]
         if not crop_calendar.empty:
             st.subheader("📅 Sowing Window Check")
