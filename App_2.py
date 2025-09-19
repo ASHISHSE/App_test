@@ -109,10 +109,23 @@ def load_data():
         weather_response = requests.get(weather_url)
         weather_df = pd.read_excel(BytesIO(weather_response.content))
         
-        # Convert Date(DDMMYY) to proper format
-        weather_df['Date'] = weather_df['Date(DDMMYY)'].apply(
-            lambda x: f"{str(x).zfill(6)[:2]}-{str(x).zfill(6)[2:4]}-20{str(x).zfill(6)[4:6]}"
-        )
+        # Clean and process weather data
+        # Convert Date(DDMMYY) to proper format DD-MM-YYYY
+        def convert_date(date_val):
+            try:
+                date_str = str(int(date_val)).zfill(6)
+                return f"{date_str[:2]}-{date_str[2:4]}-20{date_str[4:6]}"
+            except:
+                return None
+        
+        weather_df['Date'] = weather_df['Date(DDMMYY)'].apply(convert_date)
+        weather_df = weather_df.dropna(subset=['Date'])
+        
+        # Clean numeric columns (handle #N/A values)
+        numeric_cols = ['Rainfall', 'Tmax', 'Tmin', 'max_Rh', 'min_Rh']
+        for col in numeric_cols:
+            weather_df[col] = pd.to_numeric(weather_df[col], errors='coerce')
+            weather_df[col] = weather_df[col].fillna(0)
         
         # Load rules data
         rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules.xlsx"
@@ -134,6 +147,8 @@ def load_data():
         
     except Exception as e:
         st.error(f"Error loading data from GitHub: {str(e)}")
+        st.info("Using sample data for demonstration.")
+        
         # Return sample data if there's an error
         districts = ['Ahmednagar', 'Pune', 'Nashik']
         talukas = ['Ahmednagar', 'Parner', 'Sangamner']
@@ -167,15 +182,27 @@ def load_data():
             {'Crop': 'Paddy', 'Growth Stage': 'Vegetative (Tillering)', 'DAS (Days After Sowing)': '1 to 50', 'Ideal Water Required (in mm)': '30 to 50', 'IF Condition': '>=30 & <= 50', 'Farmer Advisory': 'Shallow flooding'},
             {'Crop': 'Paddy', 'Growth Stage': 'Vegetative (Tillering)', 'DAS (Days After Sowing)': '1 to 50', 'Ideal Water Required (in mm)': '30 to 50', 'IF Condition': '<30', 'Farmer Advisory': 'Light, frequent irrigation. Stress here reduces the number of tillers, directly impacting yield.'},
             {'Crop': 'Paddy', 'Growth Stage': 'Vegetative (Tillering)', 'DAS (Days After Sowing)': '1 to 50', 'Ideal Water Required (in mm)': '30 to 50', 'IF Condition': '>50', 'Farmer Advisory': 'Drain excess water. Stagnant water can lead to nutrient loss and root rot diseases.'},
-            {'Crop': 'Paddy', 'Growth Stage': 'Reproductive (Panicle Init.)', 'DAS (Days After Sowing)': '50 to 65', 'Ideal Water Required (in mm)': '50 to 100', 'IF Condition': '>=50 & <= 100', 'Farmer Advisory': 'Critical Stage. Flooding'}
+            {'Crop': 'Paddy', 'Growth Stage': 'Reproductive (Panicle Init.)', 'DAS (Days After Sowing)': '50 to 65', 'Ideal Water Required (in mm)': '50 to 100', 'IF Condition': '>=50 & <= 100', 'Farmer Advisory': 'Critical Stage. Flooding'},
+            {'Crop': 'Paddy', 'Growth Stage': 'Reproductive (Panicle Init.)', 'DAS (Days After Sowing)': '50 to 65', 'Ideal Water Required (in mm)': '50 to 100', 'IF Condition': '<50', 'Farmer Advisory': 'Priority for water supply. Drought causes panicle sterility and massive yield loss. Do not let field dry.'},
+            {'Crop': 'Paddy', 'Growth Stage': 'Reproductive (Panicle Init.)', 'DAS (Days After Sowing)': '50 to 65', 'Ideal Water Required (in mm)': '50 to 100', 'IF Condition': '>100', 'Farmer Advisory': 'Ensure good drainage. Waterlogged conditions can harm developing panicles.'},
+            {'Crop': 'Paddy', 'Growth Stage': 'Flowering', 'DAS (Days After Sowing)': '70 to 90', 'Ideal Water Required (in mm)': '50 to 100', 'IF Condition': '>=50 & <= 100', 'Farmer Advisory': 'Critical Stage. Flooding'},
+            {'Crop': 'Paddy', 'Growth Stage': 'Flowering', 'DAS (Days After Sowing)': '70 to 90', 'Ideal Water Required (in mm)': '50 to 100', 'IF Condition': '<50', 'Farmer Advisory': 'Avoid stress at all costs. Water shortage causes poor pollination and high spikelet sterility.'},
+            {'Crop': 'Paddy', 'Growth Stage': 'Flowering', 'DAS (Days After Sowing)': '70 to 90', 'Ideal Water Required (in mm)': '50 to 100', 'IF Condition': '>100', 'Farmer Advisory': 'Maintain steady level. Avoid sudden rises in water level that can submerge flowers.'},
+            {'Crop': 'Paddy', 'Growth Stage': 'Grain Filling/Maturation', 'DAS (Days After Sowing)': '90 to 115', 'Ideal Water Required (in mm)': '0 to 10', 'IF Condition': '>=0 & <= 10', 'Farmer Advisory': 'Gradual drying'},
+            {'Crop': 'Paddy', 'Growth Stage': 'Grain Filling/Maturation', 'DAS (Days After Sowing)': '90 to 115', 'Ideal Water Required (in mm)': '0 to 10', 'IF Condition': '>5', 'Farmer Advisory': 'Minor stress tolerable. Late water shortage has less impact than earlier stages.'},
+            {'Crop': 'Paddy', 'Growth Stage': 'Grain Filling/Maturation', 'DAS (Days After Sowing)': '90 to 115', 'Ideal Water Required (in mm)': '0 to 10', 'IF Condition': '>10', 'Farmer Advisory': 'Drain field completely. 2-3 weeks before harvest to allow even maturity and field access.'},
+            {'Crop': 'Paddy', 'Growth Stage': 'Harvest', 'DAS (Days After Sowing)': '115+', 'Ideal Water Required (in mm)': '0', 'IF Condition': '0', 'Farmer Advisory': 'Dry Field'},
+            {'Crop': 'Paddy', 'Growth Stage': 'Harvest', 'DAS (Days After Sowing)': '115+', 'Ideal Water Required (in mm)': '0', 'IF Condition': '>0', 'Farmer Advisory': 'Postpone harvest. A wet field will hinder machinery and damage grain quality.'}
         ]
         
         rules_df = pd.DataFrame(rules_data)
         
         # Sample sowing calendar data
         sowing_data = [
-            {'District': 'Ahmednagar', 'Taluka': 'Ahmednagar', 'Circle': 'Kapurwadi', 'Crop': 'Cotton', 'Ideal Sowing': '2FN June to 1FN July', 'IF condition': '< 2FN June', 'Comments on Sowing': 'Early Sowing due to Rainfall on time / Water source available'},
-            {'District': 'Ahmednagar', 'Taluka': 'Ahmednagar', 'Circle': 'Kapurwadi', 'Crop': 'Cotton', 'Ideal Sowing': '2FN June to 1FN July', 'IF condition': '> 1FN July', 'Comments on Sowing': 'Late Sowing due to Rainfall delay /For sowing moisture is not sufficient in soil'}
+            {'District': 'Ahmednagar', 'Taluka': 'Ahmednagar', 'Circle': 'Kapurwadi', 'Crop': 'Cotton', 'Ideal Sowing': '2FN June to 1FN July', 'IF condition': '< 2FN June', 'Comment on Sowing': 'Early Sowing due Rainfall on time / Water source available'},
+            {'District': 'Ahmednagar', 'Taluka': 'Ahmednagar', 'Circle': 'Kapurwadi', 'Crop': 'Cotton', 'Ideal Sowing': '2FN June to 1FN July', 'IF condition': '> 1FN July', 'Comment on Sowing': 'Late Sowing due to Rainfall delay /For sowing moisture is not sufficient in soil'},
+            {'District': 'Ahmednagar', 'Taluka': 'Ahmednagar', 'Circle': 'Kapurwadi', 'Crop': 'Cotton', 'Ideal Sowing': '2FN June to 1FN July', 'IF condition': '2FN June to 1FN July', 'Comment on Sowing': 'Ideal Sowing Period'},
+            {'District': 'Ahmednagar', 'Taluka': 'Ahmednagar', 'Circle': 'Kapurwadi', 'Crop': 'Jowar', 'Ideal Sowing': '2FN June to 1FN July', 'IF condition': '< 2FN June', 'Comment on Sowing': 'Early Sowing due Rainfall on time / Water source available'}
         ]
         
         sowing_df = pd.DataFrame(sowing_data)
@@ -245,11 +272,22 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
     for _, row in rules_df.iterrows():
         if row['Crop'] == crop:
             das_range = str(row['DAS (Days After Sowing)'])
-            if '-' in das_range:
-                start, end = map(int, das_range.split(' to '))
-                if start <= das <= end:
-                    current_stage = row
-                    break
+            if ' to ' in das_range:
+                try:
+                    start, end = map(int, das_range.split(' to '))
+                    if start <= das <= end:
+                        current_stage = row
+                        break
+                except:
+                    continue
+            elif das_range.endswith('+'):
+                try:
+                    start = int(das_range.replace('+', ''))
+                    if das >= start:
+                        current_stage = row
+                        break
+                except:
+                    continue
             elif das_range.isdigit() and int(das_range) == das:
                 current_stage = row
                 break
@@ -267,14 +305,23 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
         except:
             min_water, max_water = 0, 100  # Default values if parsing fails
     else:
-        min_water, max_water = 0, 100  # Default values
+        try:
+            min_water = max_water = float(water_required_range)
+        except:
+            min_water, max_water = 0, 100  # Default values
     
     # Get advisory based on condition
-    if condition := current_stage['IF Condition']:
-        if condition.startswith('>=') and condition.endswith('<= 30'):
-            if min_water <= rainfall_das <= max_water:
+    condition = str(current_stage['IF Condition'])
+    
+    if condition.startswith('>=') and '&' in condition and '<=' in condition:
+        # Handle range conditions like ">=10 & <= 30"
+        parts = condition.split('&')
+        try:
+            min_cond = float(parts[0].replace('>=', '').strip())
+            max_cond = float(parts[1].replace('<=', '').strip())
+            if min_cond <= rainfall_das <= max_cond:
                 advisory = current_stage['Farmer Advisory']
-            elif rainfall_das < min_water:
+            elif rainfall_das < min_cond:
                 # Find the advisory for low water condition
                 low_water_adv = rules_df[
                     (rules_df['Crop'] == crop) & 
@@ -290,10 +337,30 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
                     (rules_df['IF Condition'].str.startswith('>'))
                 ]
                 advisory = high_water_adv['Farmer Advisory'].values[0] if not high_water_adv.empty else "Drainage needed."
-        else:
+        except:
+            advisory = current_stage['Farmer Advisory']
+    elif condition.startswith('<'):
+        # Handle less than conditions
+        try:
+            threshold = float(condition.replace('<', '').strip())
+            if rainfall_das < threshold:
+                advisory = current_stage['Farmer Advisory']
+            else:
+                advisory = "Water condition is normal."
+        except:
+            advisory = current_stage['Farmer Advisory']
+    elif condition.startswith('>'):
+        # Handle greater than conditions
+        try:
+            threshold = float(condition.replace('>', '').strip())
+            if rainfall_das > threshold:
+                advisory = current_stage['Farmer Advisory']
+            else:
+                advisory = "Water condition is normal."
+        except:
             advisory = current_stage['Farmer Advisory']
     else:
-        advisory = "No specific advisory available."
+        advisory = current_stage['Farmer Advisory']
     
     return f"Crop is at {stage_name} stage ({das} Days After Sowing). {advisory}"
 
@@ -301,7 +368,6 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
 def get_sowing_advisory(sowing_date, district, taluka, circle, crop, sowing_df):
     sowing_dt = datetime.strptime(sowing_date, '%d-%m-%Y')
     sowing_day = sowing_dt.day
-    sowing_month = sowing_dt.month
     
     # Try to find advisory from sowing calendar
     sowing_advisory_data = sowing_df[
@@ -314,7 +380,7 @@ def get_sowing_advisory(sowing_date, district, taluka, circle, crop, sowing_df):
     if not sowing_advisory_data.empty:
         # For simplicity, use the first matching advisory
         advisory_row = sowing_advisory_data.iloc[0]
-        return f"{advisory_row['IF condition']}: {advisory_row['Comments on Sowing']}"
+        return f"{advisory_row['IF condition']}: {advisory_row['Comment on Sowing']}"
     else:
         # Fallback to general advisory based on day of month
         if sowing_day <= 15:
