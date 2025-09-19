@@ -2,37 +2,28 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# Load Excel data safely
+# Load Excel data
 @st.cache_data
 def load_data():
-    # Load Excel with explicit engine
     weather = pd.read_excel("weather.xlsx", engine="openpyxl")
     rules = pd.read_excel("rules.xlsx", engine="openpyxl")
     sowing_calendar = pd.read_excel("sowing_calendar.xlsx", engine="openpyxl")
 
-    # Clean column names
-    weather.columns = weather.columns.str.strip()
-
-    # Normalize strings for consistent filtering
-    for col in ["District", "Taluka", "Circle"]:
-        if col in weather.columns:
-            weather[col] = weather[col].astype(str).str.strip().str.title()
-
-    # Convert date column safely
+    # ✅ Fix: Parse Date(DDMMYY) properly
     if "Date(DDMMYY)" in weather.columns:
         weather["Date(DDMMYY)"] = pd.to_datetime(
-            weather["Date(DDMMYY)"], dayfirst=True, errors="coerce"
+            weather["Date(DDMMYY)"].astype(str).str.zfill(6),  # Ensure 6 digits
+            format="%d%m%y",
+            errors="coerce"
         )
 
     return weather, rules, sowing_calendar
 
-
-# Load data
 weather, rules, sowing_calendar = load_data()
 
 st.title("🌱 Crop Advisory System")
 
-# --- Location Selection ---
+# Location Selection
 districts = sorted(weather["District"].dropna().unique())
 selected_district = st.selectbox("Select District", ["All"] + list(districts))
 
@@ -48,7 +39,7 @@ else:
     circles = sorted(weather["Circle"].dropna().unique())
 selected_circle = st.selectbox("Select Circle", ["All"] + list(circles))
 
-# --- Crop & Date Selection ---
+# Crop & Date Selection
 crops = sorted(sowing_calendar["Crop"].dropna().unique())
 selected_crop = st.selectbox("Select Crop", crops)
 
@@ -68,7 +59,7 @@ if sowing_date and current_date:
     if selected_circle != "All":
         filtered_weather = filtered_weather[filtered_weather["Circle"] == selected_circle]
 
-    # Filter by DAS window
+    # ✅ Filter by DAS window (dates already parsed correctly above)
     filtered_weather = filtered_weather[
         (filtered_weather["Date(DDMMYY)"] >= pd.Timestamp(sowing_date)) &
         (filtered_weather["Date(DDMMYY)"] <= pd.Timestamp(current_date))
