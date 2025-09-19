@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# Load CSV data
+# Load Excel data
 @st.cache_data
 def load_data():
-    weather = pd.read_excel("weather.xlsx")  # Use relative paths for deployment
-    rules = pd.read_excel("rules.xlsx")
-    sowing_calendar = pd.read_excel("sowing_calendar.xlsx")
+    weather = pd.read_excel("weather.xlsx", engine="openpyxl")  # specify engine for safety
+    rules = pd.read_excel("rules.xlsx", engine="openpyxl")
+    sowing_calendar = pd.read_excel("sowing_calendar.xlsx", engine="openpyxl")
     return weather, rules, sowing_calendar
 
 weather, rules, sowing_calendar = load_data()
@@ -15,23 +15,23 @@ weather, rules, sowing_calendar = load_data()
 st.title("🌱 Crop Advisory System")
 
 # Location Selection
-districts = sorted(weather["District"].unique())
-selected_district = st.selectbox("Select District", ["All"] + districts)
+districts = sorted(weather["District"].dropna().unique())
+selected_district = st.selectbox("Select District", ["All"] + list(districts))
 
 if selected_district != "All":
-    talukas = sorted(weather[weather["District"] == selected_district]["Taluka"].unique())
+    talukas = sorted(weather[weather["District"] == selected_district]["Taluka"].dropna().unique())
 else:
-    talukas = sorted(weather["Taluka"].unique())
-selected_taluka = st.selectbox("Select Taluka", ["All"] + talukas)
+    talukas = sorted(weather["Taluka"].dropna().unique())
+selected_taluka = st.selectbox("Select Taluka", ["All"] + list(talukas))
 
 if selected_taluka != "All":
-    circles = sorted(weather[weather["Taluka"] == selected_taluka]["Circle"].unique())
+    circles = sorted(weather[weather["Taluka"] == selected_taluka]["Circle"].dropna().unique())
 else:
-    circles = sorted(weather["Circle"].unique())
-selected_circle = st.selectbox("Select Circle", ["All"] + circles)
+    circles = sorted(weather["Circle"].dropna().unique())
+selected_circle = st.selectbox("Select Circle", ["All"] + list(circles))
 
 # Crop & Date Selection
-crops = sorted(sowing_calendar["Crop"].unique())
+crops = sorted(sowing_calendar["Crop"].dropna().unique())
 selected_crop = st.selectbox("Select Crop", crops)
 
 sowing_date = st.date_input("Select Sowing Date")
@@ -54,8 +54,10 @@ if sowing_date and current_date:
     filtered_weather["Date(DDMMYY)"] = pd.to_datetime(
         filtered_weather["Date(DDMMYY)"], dayfirst=True, errors="coerce"
     )
-    filtered_weather = filtered_weather[(filtered_weather["Date(DDMMYY)"] >= pd.Timestamp(sowing_date)) &
-                                       (filtered_weather["Date(DDMMYY)"] <= pd.Timestamp(current_date))]
+    filtered_weather = filtered_weather[
+        (filtered_weather["Date(DDMMYY)"] >= pd.Timestamp(sowing_date)) &
+        (filtered_weather["Date(DDMMYY)"] <= pd.Timestamp(current_date))
+    ]
 
     if not filtered_weather.empty:
         cum_rainfall = filtered_weather["Rainfall"].sum()
@@ -68,8 +70,10 @@ if sowing_date and current_date:
         st.write(f"**Average Humidity:** {avg_humidity:.2f} %")
 
         # Determine Growth Stage
-        growth_stage = rules[(rules["Crop"] == selected_crop) &
-                             (rules["DAS_Min"] <= DAS) & (rules["DAS_Max"] >= DAS)]
+        growth_stage = rules[
+            (rules["Crop"] == selected_crop) &
+            (rules["DAS_Min"] <= DAS) & (rules["DAS_Max"] >= DAS)
+        ]
 
         if not growth_stage.empty:
             stage = growth_stage.iloc[0]["Growth_Stage"]
@@ -90,7 +94,6 @@ if sowing_date and current_date:
                 st.success("✅ Rainfall is within ideal range.")
 
             st.info(f"**Advisory:** {advisory}")
-
         else:
             st.error("No matching growth stage found for this DAS.")
 
@@ -109,8 +112,5 @@ if sowing_date and current_date:
                     st.success("✅ Sowing date is within the ideal period.")
             else:
                 st.info("No sowing period data available for this crop.")
-
     else:
         st.error("No weather data available for selected filters and dates.")
-
-
