@@ -165,7 +165,7 @@ def calculate_weather_metrics(weather_data, location_level, location_name, sowin
         filtered_data = weather_data[weather_data['District'] == location_name]
     
     # Convert date strings to datetime objects for filtering
-    filtered_data['Date_dt'] = pd.to_datetime(filtered_data['Date'], format='%d-%m-%Y')
+    filtered_data['Date(DDMMYY)'] = pd.to_datetime(filtered_data['Date(DDMMYY)'], format='%d-%m-%Y')
     sowing_dt = datetime.strptime(sowing_date, '%d-%m-%Y')
     current_dt = datetime.strptime(current_date, '%d-%m-%Y')
     
@@ -176,9 +176,9 @@ def calculate_weather_metrics(weather_data, location_level, location_name, sowin
     last_week_start = current_dt - timedelta(days=7)
     last_month_start = current_dt - timedelta(days=30)
     
-    last_week_data = filtered_data[(filtered_data['Date_dt'] >= last_week_start) & (filtered_data['Date_dt'] <= current_dt)]
-    last_month_data = filtered_data[(filtered_data['Date_dt'] >= last_month_start) & (filtered_data['Date_dt'] <= current_dt)]
-    das_data = filtered_data[(filtered_data['Date_dt'] >= sowing_dt) & (filtered_data['Date_dt'] <= current_dt)]
+    last_week_data = filtered_data[(filtered_data['Date(DDMMYY)'] >= last_week_start) & (filtered_data['Date(DDMMYY)'] <= current_dt)]
+    last_month_data = filtered_data[(filtered_data['Date(DDMMYY)'] >= last_month_start) & (filtered_data['Date(DDMMYY)'] <= current_dt)]
+    das_data = filtered_data[(filtered_data['Date(DDMMYY)'] >= sowing_dt) & (filtered_data['Date(DDMMYY)'] <= current_dt)]
     
     # Calculate metrics
     metrics = {
@@ -197,13 +197,13 @@ def calculate_weather_metrics(weather_data, location_level, location_name, sowin
 # Function to get growth stage advisory
 def get_growth_advisory(crop, das, rainfall_das, rules_df):
     # Find the current growth stage
-    current_stage = rules_df[(rules_df['Crop'] == crop) & (rules_df['DAS_Start'] <= das) & (rules_df['DAS_End'] >= das)]
+    current_stage = rules_df[(rules_df['Crop'] == crop) & (rules_df['DAS (Days After Sowing)'] <= das) & (rules_df['DAS (Days After Sowing)'] >= das)]
     
     if current_stage.empty:
         return "No advisory available for this growth stage."
     
-    stage_name = current_stage['Growth_Stage'].values[0]
-    water_required = current_stage['Water_Required'].values[0]
+    stage_name = current_stage['Growth Stage'].values[0]
+    water_required = current_stage['Ideal Water Required (in mm)'].values[0]
     
     # Compare rainfall with water requirement
     water_deficit = water_required - rainfall_das
@@ -479,3 +479,4 @@ if generate_btn:
 # Footer
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: #7f8c8d;'>Crop Advisory System © 2023. Designed for agricultural extension services.</p>", unsafe_allow_html=True)
+
