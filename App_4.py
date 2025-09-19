@@ -89,11 +89,11 @@ if taluka != "All Talukas":
 if circle != "All Circles":
     loc_df = loc_df[loc_df['Circle'] == circle]
 
-loc_df = loc_df.dropna(subset=['Date'])
-loc_df = loc_df[loc_df['Date'] <= current_date]
+loc_df = loc_df.dropna(subset=['Date(DDMMYY)'])
+loc_df = loc_df[loc_df['Date(DDMMYY)'] <= current_date]
 
 DAS = (current_date - sowing_date).days
-sowing_window_df = loc_df[(loc_df['Date'] >= sowing_date) & (loc_df['Date'] <= current_date)].copy()
+sowing_window_df = loc_df[(loc_df['Date(DDMMYY)'] >= sowing_date) & (loc_df['Date(DDMMYY)'] <= current_date)].copy()
 
 for col in ['Rainfall', 'Tmax', 'Tmin', 'max_Rh', 'min_Rh']:
     if col in sowing_window_df.columns:
@@ -186,3 +186,4 @@ for adv in advisory_sowing:
 st.subheader("📖 Growth Stage Advisory")
 for adv in growth_advisories:
     st.write(f"- {adv}")
+
