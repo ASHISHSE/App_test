@@ -210,7 +210,7 @@ st.title("🌱 Crop Advisory System")
 
 st.markdown(
     "<span style='color: red; font-weight: bold;'>⚠️ Testing Version:</span> "
-    "Data available from <b>01 June 2024</b> to <b>31 Oct 2024</b>. "
+    "Data uploaded from <b>01 June 2024</b> to <b>31 Oct 2024</b>. "
     "Please select dates within this range.",
     unsafe_allow_html=True
 )
@@ -273,5 +273,6 @@ if generate:
             st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
         else:
             st.write("No matching growth advisory found.")
+
 
 
