@@ -1,6 +1,7 @@
 # crop_advisory_app_ddmmyyyy.py
 # Full Streamlit Crop Advisory app with:
-# - Sowing advisory fixes (using Comment on Sowing)
+# - Sowing advisory fixes (using Comments on Sowing column)
+# - Farmer Advisory from rules.xlsx based on weather parameters
 # - Dropdowns all displayed at once
 # - Date format changed to dd/mm/yyyy everywhere
 
@@ -84,18 +85,6 @@ def das_in_range_string(das, das_str):
             return int(s) == das
         except Exception:
             return False
-
-def parse_water_range(water_str):
-    try:
-        s = str(water_str)
-        if "to" in s:
-            a, b = [float(x.strip()) for x in s.split("to")]
-            return a, b
-        else:
-            v = float(s.strip())
-            return v, v
-    except Exception:
-        return None, None
 
 def fn_from_date(dt):
     month_name = dt.strftime("%B")
@@ -208,12 +197,33 @@ def get_sowing_advisory(sowing_date_str, district, taluka, circle, crop, sowing_
                 if not cond:
                     continue
                 if fn.lower() in cond.lower():
-                    return row.get("Comment on Sowing", "")
+                    return row.get("Comments on Sowing", "")
                 if cond.startswith("<") or cond.startswith(">") or "to" in cond:
-                    return row.get("Comment on Sowing", "")
+                    return row.get("Comments on Sowing", "")
             break
 
     return "No sowing advisory available for this date."
+
+def get_farmer_advisory(rules_df, crop, metrics):
+    subset = rules_df[rules_df["Crop"] == crop]
+    advisories = []
+
+    for _, row in subset.iterrows():
+        condition = row.get("IF condition", "") or row.get("IF Condition", "")
+        if not condition:
+            continue
+        try:
+            # Simple condition parsing for rainfall based rules
+            if "Rainfall" in condition and metrics["rainfall_last_week"]:
+                if parse_if_condition(condition)(metrics["rainfall_last_week"]):
+                    advisories.append(row.get("Farmer Advisory", ""))
+            elif "DAS" in condition and metrics["das"]:
+                if das_in_range_string(metrics["das"], condition.split("DAS")[-1]):
+                    advisories.append(row.get("Farmer Advisory", ""))
+        except:
+            pass
+
+    return advisories if advisories else ["No farmer advisory for current parameters."]
 
 # -----------------------------
 # UI
@@ -290,6 +300,10 @@ if generate:
         st.header("📋 Advisory Results")
         st.subheader("Sowing Advisory")
         st.write(get_sowing_advisory(sowing_date_str, district, taluka, circle, crop, sowing_df))
+
+        st.subheader("Farmer Advisory")
+        for adv in get_farmer_advisory(rules_df, crop, metrics):
+            st.write(f"- {adv}")
 
         st.markdown("---")
         st.header("📤 Share Advisory")
