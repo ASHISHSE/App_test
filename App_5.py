@@ -104,10 +104,12 @@ def load_data():
     rules_df = pd.read_excel(BytesIO(rres.content))
     sowing_df = pd.read_excel(BytesIO(sres.content))
 
-    if "Date(DDMMYY)" in weather_df.columns:
-        weather_df["Date"] = weather_df["Date(DDMMYY)"].apply(parse_ddmmyy_to_ddmmyyyy)
+    # ✅ Modified: use new column name Date(DD-MM-YYYY)
+    if "Date(DD-MM-YYYY)" in weather_df.columns:
+        weather_df["Date"] = pd.to_datetime(weather_df["Date(DD-MM-YYYY)"], format="%d-%m-%Y", errors="coerce").dt.strftime("%d/%m/%Y")
     elif "Date" in weather_df.columns:
-        weather_df["Date"] = weather_df["Date"].apply(lambda x: pd.to_datetime(x).strftime("%d/%m/%Y"))
+        weather_df["Date"] = pd.to_datetime(weather_df["Date"], errors="coerce").dt.strftime("%d/%m/%Y")
+
     weather_df = weather_df.dropna(subset=["Date"]).copy()
 
     for col in ["Rainfall", "Tmax", "Tmin", "max_Rh", "min_Rh"]:
@@ -145,22 +147,32 @@ def calculate_weather_metrics(weather_data, level, name, sowing_date_str, curren
     df["Date_dt"] = pd.to_datetime(df["Date"], format="%d/%m/%Y", errors="coerce")
     sowing_dt = datetime.strptime(sowing_date_str, "%d/%m/%Y")
     current_dt = datetime.strptime(current_date_str, "%d/%m/%Y")
-
     das = max((current_dt - sowing_dt).days, 0)
 
     das_data = df[(df["Date_dt"] >= sowing_dt) & (df["Date_dt"] <= current_dt)]
 
+    # ✅ Ignore 0 values while calculating averages
+    def safe_avg(series):
+        series = series.replace(0, np.nan).dropna()
+        return float(series.mean()) if not series.empty else None
+
     metrics = {
-        "rainfall_last_week": float(das_data[das_data["Date_dt"] >= current_dt - timedelta(days=7)]["Rainfall"].sum()),
-        "rainfall_last_month": float(das_data[das_data["Date_dt"] >= current_dt - timedelta(days=30)]["Rainfall"].sum()),
-        "rainfall_das": float(das_data["Rainfall"].sum()),
-        "tmax_avg": float(das_data["Tmax"].dropna().mean()) if not das_data["Tmax"].dropna().empty else None,
-        "tmin_avg": float(das_data["Tmin"].dropna().mean()) if not das_data["Tmin"].dropna().empty else None,
-        "max_rh_avg": float(das_data["max_Rh"].dropna().mean()) if not das_data["max_Rh"].dropna().empty else None,
-        "min_rh_avg": float(das_data["min_Rh"].dropna().mean()) if not das_data["min_Rh"].dropna().empty else None,
+        "rainfall_last_week": float(das_data[das_data["Date_dt"] >= current_dt - timedelta(days=7)]["Rainfall"].replace(0, np.nan).sum(skipna=True)),
+        "rainfall_last_month": float(das_data[das_data["Date_dt"] >= current_dt - timedelta(days=30)]["Rainfall"].replace(0, np.nan).sum(skipna=True)),
+        "rainfall_das": float(das_data["Rainfall"].replace(0, np.nan).sum(skipna=True)),
+        "tmax_avg": safe_avg(das_data["Tmax"]),
+        "tmin_avg": safe_avg(das_data["Tmin"]),
+        "max_rh_avg": safe_avg(das_data["max_Rh"]),
+        "min_rh_avg": safe_avg(das_data["min_Rh"]),
         "das": das,
     }
     return metrics
+
+# -----------------------------
+# Rest of your advisory logic (unchanged)
+# -----------------------------
+# get_growth_advisory, get_sowing_comments, and UI code remain as you already had.
+
 
 def get_growth_advisory(crop, das, rainfall_das, rules_df):
     candidates = rules_df[rules_df["Crop"] == crop]
@@ -273,6 +285,7 @@ if generate:
             st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
         else:
             st.write("No matching growth advisory found.")
+
 
 
 
