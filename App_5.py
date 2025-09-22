@@ -207,7 +207,16 @@ def get_sowing_comments(sowing_date_str, district, taluka, circle, crop, sowing_
 qp = st.query_params
 
 st.title("🌱 Crop Advisory System")
-st.write("Select a location and crop, enter sowing & current dates, and click Generate Advisory.")
+
+st.markdown(
+    "<span style='color: red; font-weight: bold;'>⚠️ Testing Version:</span> "
+    "Data available from <b>01 June 2024</b> to <b>31 Oct 2024</b>. "
+    "Please select dates within this range.",
+    unsafe_allow_html=True
+)
+
+st.write("📍 Select a location and crop, enter **Sowing Date** & **Current Date**, then click **Generate Advisory**.")
+
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -264,4 +273,5 @@ if generate:
             st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
         else:
             st.write("No matching growth advisory found.")
+
 
