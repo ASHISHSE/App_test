@@ -122,15 +122,15 @@ def load_data():
 
     # strip text columns
     for c in ["District", "Taluka", "Circle"]:
-        if c in weather_df.columns:
-            weather_df[c] = weather_df[c].astype(str).str.strip()
+        if c in sowing_df.columns:
+            sowing_df[c] = sowing_df[c].astype(str).str.strip()
 
     if "Crop" in rules_df.columns:
         rules_df["Crop"] = rules_df["Crop"].ast(str).str.strip()
 
-    districts = sorted(weather_df["District"].dropna().unique().tolist())
-    talukas = sorted(weather_df["Taluka"].dropna().unique().tolist()) if "Taluka" in weather_df.columns else []
-    circles = sorted(weather_df["Circle"].dropna().unique().tolist())
+    districts = sorted(sowing_df["District"].dropna().unique().tolist())
+    talukas = sorted(sowing_df["Taluka"].dropna().unique().tolist()) if "Taluka" in weather_df.columns else []
+    circles = sorted(sowing_df["Circle"].dropna().unique().tolist())
     crops = sorted(rules_df["Crop"].dropna().unique().tolist())
 
     return weather_df, rules_df, sowing_df, districts, talukas, circles, crops
@@ -322,3 +322,4 @@ if generate:
             st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
         else:
             st.write("No matching growth advisory found.")
+
