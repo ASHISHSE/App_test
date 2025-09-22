@@ -129,7 +129,7 @@ def load_data():
         rules_df["Crop"] = rules_df["Crop"].ast(str).str.strip()
 
     districts = sorted(sowing_df["District"].dropna().unique().tolist())
-    talukas = sorted(sowing_df["Taluka"].dropna().unique().tolist()) if "Taluka" in weather_df.columns else []
+    talukas = sorted(sowing_df["Taluka"].dropna().unique().tolist()) if "Taluka" in sowing_df.columns else []
     circles = sorted(sowing_df["Circle"].dropna().unique().tolist())
     crops = sorted(rules_df["Crop"].dropna().unique().tolist())
 
@@ -322,4 +322,5 @@ if generate:
             st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
         else:
             st.write("No matching growth advisory found.")
+
 
