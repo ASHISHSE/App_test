@@ -207,6 +207,7 @@ def get_sowing_comments(sowing_date_str, district, taluka, circle, crop, sowing_
 qp = st.query_params
 
 st.title("🌱 Crop Advisory System")
+st.write("Select a location and crop, enter sowing & current dates, and click Generate Advisory.")
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -248,7 +249,7 @@ if generate:
             st.metric("Min RH Avg (since sowing)", f"{metrics['min_rh_avg']:.1f}" if metrics['min_rh_avg'] is not None else "N/A")
 
         st.markdown("---")
-        st.header("📝 Comment in Sowing")
+        st.header("📝 Comment on Sowing")
         sowing_comments = get_sowing_comments(sowing_date_str, district, taluka, circle, crop, sowing_df)
         for comment in sowing_comments:
             st.write(f"• {comment}")
@@ -263,3 +264,4 @@ if generate:
             st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
         else:
             st.write("No matching growth advisory found.")
+
