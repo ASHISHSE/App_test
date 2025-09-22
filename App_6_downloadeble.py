@@ -126,7 +126,7 @@ def load_data():
             weather_df[c] = weather_df[c].astype(str).str.strip()
 
     if "Crop" in rules_df.columns:
-        rules_df["Crop"] = rules_df["Crop"].astype(str).str.strip()
+        rules_df["Crop"] = rules_df["Crop"].ast(str).str.strip()
 
     districts = sorted(weather_df["District"].dropna().unique().tolist())
     talukas = sorted(weather_df["Taluka"].dropna().unique().tolist()) if "Taluka" in weather_df.columns else []
@@ -190,7 +190,7 @@ def calculate_weather_metrics(weather_data, level, name, sowing_date_str, curren
     def avg_ignore_zero_and_na(series):
         if (series is None) or (series.size == 0):
             return None
-        s = pd.to_numeric(series, errors="coerce").replace(0, np.nan).dropna()
+        s = pd.to_numeric(series, errors="coerce").dropna()
         if s.empty:
             return None
         return float(s.mean())
