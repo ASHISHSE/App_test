@@ -79,18 +79,6 @@ def das_in_range_string(das, das_str):
         except Exception:
             return False
 
-def parse_water_range(water_str):
-    try:
-        s = str(water_str)
-        if "to" in s:
-            a, b = [float(x.strip()) for x in s.split("to")]
-            return a, b
-        else:
-            v = float(s.strip())
-            return v, v
-    except Exception:
-        return None, None
-
 def fn_from_date(dt):
     month_name = dt.strftime("%B")
     day = dt.day
@@ -116,7 +104,6 @@ def load_data():
     rules_df = pd.read_excel(BytesIO(rres.content))
     sowing_df = pd.read_excel(BytesIO(sres.content))
 
-    # Normalize date
     if "Date(DDMMYY)" in weather_df.columns:
         weather_df["Date"] = weather_df["Date(DDMMYY)"].apply(parse_ddmmyy_to_ddmmyyyy)
     elif "Date" in weather_df.columns:
@@ -135,7 +122,7 @@ def load_data():
         rules_df["Crop"] = rules_df["Crop"].astype(str).str.strip()
 
     districts = sorted(weather_df["District"].dropna().unique().tolist())
-    talukas = sorted(weather_df["Talula"].dropna().unique().tolist()) if "Talula" in weather_df.columns else []
+    talukas = sorted(weather_df["Taluka"].dropna().unique().tolist()) if "Taluka" in weather_df.columns else []
     circles = sorted(weather_df["Circle"].dropna().unique().tolist())
     crops = sorted(rules_df["Crop"].dropna().unique().tolist())
 
@@ -159,25 +146,18 @@ def calculate_weather_metrics(weather_data, level, name, sowing_date_str, curren
     sowing_dt = datetime.strptime(sowing_date_str, "%d/%m/%Y")
     current_dt = datetime.strptime(current_date_str, "%d/%m/%Y")
 
-    das = (current_dt - sowing_dt).days
-    if das < 0:
-        das = 0
+    das = max((current_dt - sowing_dt).days, 0)
 
-    last_week_start = current_dt - timedelta(days=7)
-    last_month_start = current_dt - timedelta(days=30)
-
-    last_week_data = df[(df["Date_dt"] >= last_week_start) & (df["Date_dt"] <= current_dt)]
-    last_month_data = df[(df["Date_dt"] >= last_month_start) & (df["Date_dt"] <= current_dt)]
     das_data = df[(df["Date_dt"] >= sowing_dt) & (df["Date_dt"] <= current_dt)]
 
     metrics = {
-        "rainfall_last_week": float(last_week_data["Rainfall"].sum()) if not last_week_data.empty else 0.0,
-        "rainfall_last_month": float(last_month_data["Rainfall"].sum()) if not last_month_data.empty else 0.0,
-        "rainfall_das": float(das_data["Rainfall"].sum()) if not das_data.empty else 0.0,
-        "tmax_avg": float(das_data["Tmax"].dropna().mean()) if "Tmax" in das_data else None,
-        "tmin_avg": float(das_data["Tmin"].dropna().mean()) if "Tmin" in das_data else None,
-        "max_rh_avg": float(das_data["max_Rh"].dropna().mean()) if "max_Rh" in das_data else None,
-        "min_rh_avg": float(das_data["min_Rh"].dropna().mean()) if "min_Rh" in das_data else None,
+        "rainfall_last_week": float(das_data[das_data["Date_dt"] >= current_dt - timedelta(days=7)]["Rainfall"].sum()),
+        "rainfall_last_month": float(das_data[das_data["Date_dt"] >= current_dt - timedelta(days=30)]["Rainfall"].sum()),
+        "rainfall_das": float(das_data["Rainfall"].sum()),
+        "tmax_avg": float(das_data["Tmax"].dropna().mean()) if not das_data["Tmax"].dropna().empty else None,
+        "tmin_avg": float(das_data["Tmin"].dropna().mean()) if not das_data["Tmin"].dropna().empty else None,
+        "max_rh_avg": float(das_data["max_Rh"].dropna().mean()) if not das_data["max_Rh"].dropna().empty else None,
+        "min_rh_avg": float(das_data["min_Rh"].dropna().mean()) if not das_data["min_Rh"].dropna().empty else None,
         "das": das,
     }
     return metrics
@@ -187,28 +167,16 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
     if candidates.empty:
         return None
 
-    match_row = None
     for _, row in candidates.iterrows():
         if das_in_range_string(das, row.get("DAS (Days After Sowing)")):
-            match_row = row
-            break
-
-    if match_row is None:
-        return None
-
-    stage_name = match_row.get("Growth Stage", "Unknown")
-    ideal_water = match_row.get("Ideal Water Required (in mm)", "")
-    if_condition = match_row.get("IF Condition", "")
-    farmer_advisory = match_row.get("Farmer Advisory", "")
-
-    evaluator = parse_if_condition(if_condition)
-    if evaluator(rainfall_das):
-        return {
-            "growth_stage": stage_name,
-            "das": das,
-            "ideal_water": ideal_water,
-            "farmer_advisory": farmer_advisory,
-        }
+            evaluator = parse_if_condition(row.get("IF Condition", ""))
+            if evaluator(rainfall_das):
+                return {
+                    "growth_stage": row.get("Growth Stage", "Unknown"),
+                    "das": das,
+                    "ideal_water": row.get("Ideal Water Required (in mm)", ""),
+                    "farmer_advisory": row.get("Farmer Advisory", "")
+                }
     return None
 
 def get_sowing_comments(sowing_date_str, district, taluka, circle, crop, sowing_df):
@@ -251,8 +219,6 @@ with col1:
 with col2:
     crop = st.selectbox("Crop Name *", [""] + crops)
     sowing_date = st.date_input("Sowing Date (dd/mm/yyyy)", value=date.today() - timedelta(days=30), format="DD/MM/YYYY")
-
-with col3:
     current_date = st.date_input("Current Date (dd/mm/yyyy)", value=date.today(), format="DD/MM/YYYY")
 
 generate = st.button("🌱 Generate Advisory")
