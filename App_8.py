@@ -173,7 +173,7 @@ if generate:
                 display_df = display_df[columns_to_show]
 
                 def highlight_rainy_days(row):
-                    return ["background-color: #d0f0c0" if row["Rainfall"] > 0 else "" for _ in row]
+                    return ["background-color: #0ea6ff" if row["Rainfall"] > 0 else "" for _ in row]
 
                 st.dataframe(display_df.style.apply(highlight_rainy_days, axis=1), use_container_width=True)
             else:
@@ -218,3 +218,4 @@ if generate:
                     st.info("No matching growth stage found for DAS.")
             else:
                 st.warning("Rules data not available.")
+
