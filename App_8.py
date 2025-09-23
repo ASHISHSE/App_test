@@ -5,7 +5,6 @@ from calendar import monthrange
 import re
 
 # ------------------- DATA LOADING -------------------
-
 @st.cache_data
 def load_data():
     weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather.xlsx"
@@ -16,14 +15,21 @@ def load_data():
     rules_df = pd.read_excel(rules_url)
     sowing_df = pd.read_excel(sowing_url)
 
-    # Ensure date column exists & convert
-    if "DD-MM-YYYY" not in weather_df.columns:
-        raise ValueError("weather.xlsx must have a column 'DD-MM-YYYY'")
-    weather_df["Date_dt"] = pd.to_datetime(weather_df["DD-MM-YYYY"], format="%d-%m-%Y", errors="coerce")
+    # ✅ Flexible column name detection
+    date_col = None
+    for candidate in ["Date(DD-MM-YYYY)", "DD-MM-YYYY", "Date"]:
+        if candidate in weather_df.columns:
+            date_col = candidate
+            break
+
+    if date_col is None:
+        raise ValueError("weather.xlsx must have a column named 'Date(DD-MM-YYYY)' or 'DD-MM-YYYY' or 'Date'")
+
+    weather_df["Date_dt"] = pd.to_datetime(weather_df[date_col], format="%d-%m-%Y", errors="coerce")
+    weather_df = weather_df.dropna(subset=["Date_dt"]).copy()
 
     return weather_df, rules_df, sowing_df
 
-weather_df, rules_df, sowing_df = load_data()
 
 # ------------------- UTILITY FUNCTIONS -------------------
 
@@ -191,3 +197,4 @@ if st.button("Generate Advisory"):
         st.info(f"👨‍🌾 Farmer Advisory: {stage_row.iloc[0]['Farmer Advisory']}")
     else:
         st.warning("No matching growth stage found for this DAS.")
+
