@@ -20,12 +20,16 @@ def detect_date_column(df):
     return None
 
 # -----------------------------
-# Load Data
+# Load Data from GitHub
 # -----------------------------
 @st.cache_data
 def load_data():
+    weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather.xlsx"
+    rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules.xlsx"
+    sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar.xlsx"
+
     try:
-        weather_df = pd.read_excel("weather.xlsx")
+        weather_df = pd.read_excel(weather_url)
         date_col = detect_date_column(weather_df)
         if not date_col:
             st.error("❌ No valid date column found in weather.xlsx (expected something like 'Date' or 'DD-MM-YYYY').")
@@ -34,7 +38,6 @@ def load_data():
         weather_df["Date_dt"] = pd.to_datetime(weather_df[date_col], errors="coerce")
         weather_df = weather_df.dropna(subset=["Date_dt"]).copy()
 
-        # Ensure numeric columns are converted properly
         for col in ["Rainfall", "Tmax", "Tmin", "max_Rh", "min_Rh"]:
             if col in weather_df.columns:
                 weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
@@ -43,7 +46,7 @@ def load_data():
         return None, None, None
 
     try:
-        rules_df = pd.read_excel("rules.xlsx")
+        rules_df = pd.read_excel(rules_url)
         if "Crop" in rules_df.columns:
             rules_df["Crop"] = rules_df["Crop"].astype(str).str.strip()
     except Exception as e:
@@ -51,7 +54,7 @@ def load_data():
         rules_df = None
 
     try:
-        sowing_df = pd.read_excel("sowing_calendar.xlsx")
+        sowing_df = pd.read_excel(sowing_url)
         for c in ["Crop", "IF condition", "Comments on Sowing"]:
             if c in sowing_df.columns:
                 sowing_df[c] = sowing_df[c].astype(str).str.strip()
@@ -98,7 +101,7 @@ if generate:
         level = "Circle" if circle else "Taluka" if taluka else "District"
         level_name = circle if circle else taluka if taluka else district
 
-        # Filter data by selected level
+        # Filter weather data based on selected level
         df = weather_df.copy()
         if level == "Circle":
             df = df[df["Circle"] == level_name]
