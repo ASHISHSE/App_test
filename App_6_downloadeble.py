@@ -21,44 +21,16 @@ def parse_ddmmyy_to_ddmmyyyy(val):
         except Exception:
             return None
 
-def parse_if_condition(cond_str):
-    cond = str(cond_str).strip()
-    cond = cond.replace("and", "&").replace("AND", "&")
-    parts = [p.strip() for p in cond.split("&") if p.strip()]
+def fn_from_date(dt):
+    """Return 1FN or 2FN based on day of month."""
+    month_name = dt.strftime("%B")
+    return f"1FN {month_name}" if dt.day <= 15 else f"2FN {month_name}"
 
-    checks = []
-    for p in parts:
-        try:
-            if p.startswith(">="):
-                v = float(p.replace(">=", "").strip())
-                checks.append(lambda x, v=v: x >= v)
-            elif p.startswith("<="):
-                v = float(p.replace("<=", "").strip())
-                checks.append(lambda x, v=v: x <= v)
-            elif p.startswith(">"):
-                v = float(p.replace(">", "").strip())
-                checks.append(lambda x, v=v: x > v)
-            elif p.startswith("<"):
-                v = float(p.replace("<", "").strip())
-                checks.append(lambda x, v=v: x < v)
-            else:
-                v = float(p)
-                checks.append(lambda x, v=v: x == v)
-        except Exception:
-            pass  # ignore invalid conditions
-
-    def evaluator(x):
-        try:
-            for check in checks:
-                if not check(x):
-                    return False
-            return True
-        except Exception:
-            return False
-
-    return evaluator
+def normalize_fn_string(s):
+    return str(s).replace(".", "").strip()
 
 def das_in_range_string(das, das_str):
+    """Check if DAS falls in a given DAS range string."""
     s = str(das_str).strip()
     try:
         if "to" in s:
@@ -71,14 +43,6 @@ def das_in_range_string(das, das_str):
             return int(s) == das
     except Exception:
         return False
-
-def fn_from_date(dt):
-    month_name = dt.strftime("%B")
-    day = dt.day
-    return f"1FN {month_name}" if day <= 15 else f"2FN {month_name}"
-
-def normalize_fn_string(s):
-    return str(s).replace(".", "").strip()
 
 # -----------------------------
 # Load data
@@ -97,17 +61,15 @@ def load_data():
     rules_df = pd.read_excel(BytesIO(rres.content))
     sowing_df = pd.read_excel(BytesIO(sres.content))
 
-    # Convert Date column
+    # Convert Date column (mandatory: use Date(DD-MM-YYYY))
     if "Date(DD-MM-YYYY)" in weather_df.columns:
-        weather_df["Date"] = pd.to_datetime(weather_df["Date(DD-MM-YYYY)"], format="%d-%m-%Y", errors="coerce").dt.strftime("%d/%m/%Y")
-    elif "Date(DDMMYY)" in weather_df.columns:
-        weather_df["Date"] = weather_df["Date(DDMMYY)"].apply(parse_ddmmyy_to_ddmmyyyy)
+        weather_df["Date_dt"] = pd.to_datetime(weather_df["Date(DD-MM-YYYY)"], format="%d-%m-%Y", errors="coerce")
     elif "Date" in weather_df.columns:
-        weather_df["Date"] = pd.to_datetime(weather_df["Date"], errors="coerce").dt.strftime("%d/%m/%Y")
+        weather_df["Date_dt"] = pd.to_datetime(weather_df["Date"], errors="coerce")
     else:
-        weather_df["Date"] = None
+        weather_df["Date_dt"] = pd.NaT
 
-    weather_df = weather_df.dropna(subset=["Date"]).copy()
+    weather_df = weather_df.dropna(subset=["Date_dt"]).copy()
 
     # Numeric conversion
     for col in ["Rainfall", "Tmax", "Tmin", "max_Rh", "min_Rh"]:
@@ -119,11 +81,9 @@ def load_data():
         if c in sowing_df.columns:
             sowing_df[c] = sowing_df[c].astype(str).str.strip()
 
-    # Clean rules_df Crop column safely
     if "Crop" in rules_df.columns:
         rules_df["Crop"] = rules_df["Crop"].astype(str).str.strip()
 
-    # Prepare dropdowns
     districts = sorted(sowing_df["District"].dropna().unique().tolist()) if "District" in sowing_df.columns else []
     talukas = sorted(sowing_df["Taluka"].dropna().unique().tolist()) if "Taluka" in sowing_df.columns else []
     circles = sorted(sowing_df["Circle"].dropna().unique().tolist()) if "Circle" in sowing_df.columns else []
@@ -137,51 +97,49 @@ weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data(
 # Metrics & Advisory Functions
 # -----------------------------
 def calculate_weather_metrics(weather_data, level, name, sowing_date_str, current_date_str):
+    """Calculate rainfall and weather metrics strictly using Date(DD-MM-YYYY)."""
     df = weather_data.copy()
 
-    # Filter by location level
+    # Filter based on selected level
     if level == "Circle":
         df = df[df["Circle"] == name]
     elif level == "Taluka":
         df = df[df["Taluka"] == name]
-    else:
+    elif level == "District":
         df = df[df["District"] == name]
-
-    df["Date_dt"] = pd.to_datetime(df["Date"], format="%d/%m/%Y", errors="coerce")
 
     sowing_dt = datetime.strptime(sowing_date_str, "%d/%m/%Y")
     current_dt = datetime.strptime(current_date_str, "%d/%m/%Y")
-
     das = max((current_dt - sowing_dt).days, 0)
 
+    # Create masks
+    das_mask = (df["Date_dt"] >= sowing_dt) & (df["Date_dt"] <= current_dt)
     week_start = current_dt - timedelta(days=6)
     month_start = current_dt - timedelta(days=29)
 
     week_mask = (df["Date_dt"] >= week_start) & (df["Date_dt"] <= current_dt)
     month_mask = (df["Date_dt"] >= month_start) & (df["Date_dt"] <= current_dt)
-    das_mask = (df["Date_dt"] >= sowing_dt) & (df["Date_dt"] <= current_dt)
 
+    das_data = df.loc[das_mask]
     week_data = df.loc[week_mask]
     month_data = df.loc[month_mask]
-    das_data = df.loc[das_mask]
 
-    rainfall_last_week = float(week_data["Rainfall"].fillna(0).sum()) if "Rainfall" in week_data else 0.0
-    rainfall_last_month = float(month_data["Rainfall"].fillna(0).sum()) if "Rainfall" in month_data else 0.0
-    rainfall_das = float(das_data["Rainfall"].fillna(0).sum()) if "Rainfall" in das_data else 0.0
+    # Calculate sums and averages
+    rainfall_das = das_data["Rainfall"].fillna(0).sum() if "Rainfall" in das_data else 0
+    rainfall_last_week = week_data["Rainfall"].fillna(0).sum() if "Rainfall" in week_data else 0
+    rainfall_last_month = month_data["Rainfall"].fillna(0).sum() if "Rainfall" in month_data else 0
 
     def avg_ignore_zero_and_na(series):
         if (series is None) or (series.size == 0):
             return None
         s = pd.to_numeric(series, errors="coerce").dropna()
         s = s[s != 0]
-        if s.empty:
-            return None
-        return float(s.mean())
+        return float(s.mean()) if not s.empty else None
 
-    tmax_avg = avg_ignore_zero_and_na(das_data["Tmax"]) if "Tmax" in das_data.columns else None
-    tmin_avg = avg_ignore_zero_and_na(das_data["Tmin"]) if "Tmin" in das_data.columns else None
-    max_rh_avg = avg_ignore_zero_and_na(das_data["max_Rh"]) if "max_Rh" in das_data.columns else None
-    min_rh_avg = avg_ignore_zero_and_na(das_data["min_Rh"]) if "min_Rh" in das_data.columns else None
+    tmax_avg = avg_ignore_zero_and_na(das_data["Tmax"]) if "Tmax" in das_data else None
+    tmin_avg = avg_ignore_zero_and_na(das_data["Tmin"]) if "Tmin" in das_data else None
+    max_rh_avg = avg_ignore_zero_and_na(das_data["max_Rh"]) if "max_Rh" in das_data else None
+    min_rh_avg = avg_ignore_zero_and_na(das_data["min_Rh"]) if "min_Rh" in das_data else None
 
     return {
         "rainfall_last_week": rainfall_last_week,
@@ -193,25 +151,6 @@ def calculate_weather_metrics(weather_data, level, name, sowing_date_str, curren
         "min_rh_avg": min_rh_avg,
         "das": das,
     }
-
-def get_growth_advisory(crop, das, rainfall_das, rules_df):
-    if "Crop" not in rules_df.columns:
-        return None
-    candidates = rules_df[rules_df["Crop"] == crop]
-    if candidates.empty:
-        return None
-
-    for _, row in candidates.iterrows():
-        if das_in_range_string(das, row.get("DAS (Days After Sowing)", "")):
-            evaluator = parse_if_condition(row.get("IF Condition", ""))
-            if evaluator(rainfall_das):
-                return {
-                    "growth_stage": row.get("Growth Stage", "Unknown"),
-                    "das": das,
-                    "ideal_water": row.get("Ideal Water Required (in mm)", ""),
-                    "farmer_advisory": row.get("Farmer Advisory", "")
-                }
-    return None
 
 def get_sowing_comments(sowing_date_str, district, taluka, circle, crop, sowing_df):
     if sowing_df.empty:
@@ -237,13 +176,27 @@ def get_sowing_comments(sowing_date_str, district, taluka, circle, crop, sowing_
                 break
     return results
 
+def get_growth_advisory(crop, das, rainfall_das, rules_df):
+    if "Crop" not in rules_df.columns:
+        return None
+    candidates = rules_df[rules_df["Crop"] == crop]
+    if candidates.empty:
+        return None
+
+    for _, row in candidates.iterrows():
+        if das_in_range_string(das, row.get("DAS (Days After Sowing)", "")):
+            return {
+                "growth_stage": row.get("Growth Stage", "Unknown"),
+                "das": das,
+                "ideal_water": row.get("Ideal Water Required (in mm)", ""),
+                "farmer_advisory": row.get("Farmer Advisory", "")
+            }
+    return None
+
 # -----------------------------
 # UI
 # -----------------------------
-qp = st.query_params
-
 st.title("🌱 Crop Advisory System")
-
 st.markdown(
     "<span style='color: red; font-weight: bold;'>⚠️ Testing Version:</span> "
     "Data uploaded from <b>01 June 2024</b> to <b>31 Oct 2024</b>. "
@@ -295,8 +248,11 @@ if generate:
         st.markdown("---")
         st.header("📝 Comment on Sowing")
         sowing_comments = get_sowing_comments(sowing_date_str, district, taluka, circle, crop, sowing_df)
-        for comment in sowing_comments:
-            st.write(f"• {comment}")
+        if sowing_comments:
+            for comment in sowing_comments:
+                st.write(f"• {comment}")
+        else:
+            st.write("No matching sowing comments found.")
 
         st.markdown("---")
         st.header("🌱 Growth Stage Advisory")
