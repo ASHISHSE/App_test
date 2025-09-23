@@ -15,18 +15,37 @@ def fn_from_date(dt):
     month_name = dt.strftime("%B")
     return f"1FN {month_name}" if dt.day <= 15 else f"2FN {month_name}"
 
+def normalize_fn_string(s):
+    return str(s).replace(".", "").strip()
+
+def das_in_range_string(das, das_str):
+    s = str(das_str).strip()
+    try:
+        if "to" in s:
+            a, b = [int(p.strip()) for p in s.split("to")]
+            return a <= das <= b
+        elif s.endswith("+"):
+            a = int(s.replace("+", "").strip())
+            return das >= a
+        else:
+            return int(s) == das
+    except Exception:
+        return False
+
+# -----------------------------
+# Parse FN conditions for sowing
+# -----------------------------
 def parse_fn_date(year, fn_str):
     """
     Convert '1FN June' or '2FN July' to (start_date, end_date)
+    1FN -> 1st to 15th
+    2FN -> 16th to end of month
     """
     parts = fn_str.strip().split()
     if len(parts) != 2:
         return None, None
     fn, month_name = parts
-    try:
-        month = datetime.strptime(month_name, "%B").month
-    except ValueError:
-        return None, None
+    month = datetime.strptime(month_name, "%B").month
     if fn.upper() == "1FN":
         start = datetime(year, month, 1)
         end = datetime(year, month, 15)
@@ -38,17 +57,18 @@ def parse_fn_date(year, fn_str):
 
 def match_condition(sowing_date, cond_str):
     """
-    Match sowing_date against IF condition string:
-    - < 2FN June → before June 16
-    - > 1FN Aug → after Aug 15
-    - 2FN June to 1FN July → between June 16 and July 15
+    Match sowing_date against IF condition string.
+    Handles:
+    < 2FN June
+    > 1FN Aug
+    2FN June to 1FN July
     """
     cond_str = str(cond_str).strip()
     year = sowing_date.year
 
     try:
         if "to" in cond_str:
-            # Range condition
+            # Example: 2FN June to 1FN July
             parts = cond_str.split("to")
             start_str, end_str = parts[0].strip(), parts[1].strip()
             start_date, _ = parse_fn_date(year, start_str)
@@ -57,12 +77,14 @@ def match_condition(sowing_date, cond_str):
                 return start_date <= sowing_date <= end_date
 
         elif cond_str.startswith("<"):
+            # Example: < 2FN June
             ref_str = cond_str.replace("<", "").strip()
             _, end_date = parse_fn_date(year, ref_str)
             if end_date:
-                return sowing_date < (end_date + timedelta(days=1))
+                return sowing_date < end_date + timedelta(days=1)
 
         elif cond_str.startswith(">"):
+            # Example: > 1FN Aug
             ref_str = cond_str.replace(">", "").strip()
             _, end_date = parse_fn_date(year, ref_str)
             if end_date:
@@ -90,6 +112,7 @@ def load_data():
     rules_df = pd.read_excel(BytesIO(rres.content))
     sowing_df = pd.read_excel(BytesIO(sres.content))
 
+    # Parse date column
     if "Date(DD-MM-YYYY)" in weather_df.columns:
         weather_df["Date_dt"] = pd.to_datetime(weather_df["Date(DD-MM-YYYY)"], format="%d-%m-%Y", errors="coerce")
     elif "Date" in weather_df.columns:
@@ -147,13 +170,13 @@ def calculate_weather_metrics(weather_data, level, name, sowing_date_str, curren
     week_data = df.loc[week_mask]
     month_data = df.loc[month_mask]
 
-    rainfall_das = das_data["Rainfall"].fillna(0).sum()
-    rainfall_last_week = week_data["Rainfall"].fillna(0).sum()
-    rainfall_last_month = month_data["Rainfall"].fillna(0).sum()
+    rainfall_das = das_data["Rainfall"].fillna(0).sum() if "Rainfall" in das_data else 0
+    rainfall_last_week = week_data["Rainfall"].fillna(0).sum() if "Rainfall" in week_data else 0
+    rainfall_last_month = month_data["Rainfall"].fillna(0).sum() if "Rainfall" in month_data else 0
 
-    rainy_days_das = (das_data["Rainfall"] > 0).sum()
-    rainy_days_week = (week_data["Rainfall"] > 0).sum()
-    rainy_days_month = (month_data["Rainfall"] > 0).sum()
+    rainy_days_das = (das_data["Rainfall"] > 0).sum() if "Rainfall" in das_data else 0
+    rainy_days_week = (week_data["Rainfall"] > 0).sum() if "Rainfall" in week_data else 0
+    rainy_days_month = (month_data["Rainfall"] > 0).sum() if "Rainfall" in month_data else 0
 
     def avg_ignore_zero_and_na(series):
         if (series is None) or (series.size == 0):
@@ -162,10 +185,10 @@ def calculate_weather_metrics(weather_data, level, name, sowing_date_str, curren
         s = s[s != 0]
         return float(s.mean()) if not s.empty else None
 
-    tmax_avg = avg_ignore_zero_and_na(das_data["Tmax"])
-    tmin_avg = avg_ignore_zero_and_na(das_data["Tmin"])
-    max_rh_avg = avg_ignore_zero_and_na(das_data["max_Rh"])
-    min_rh_avg = avg_ignore_zero_and_na(das_data["min_Rh"])
+    tmax_avg = avg_ignore_zero_and_na(das_data["Tmax"]) if "Tmax" in das_data else None
+    tmin_avg = avg_ignore_zero_and_na(das_data["Tmin"]) if "Tmin" in das_data else None
+    max_rh_avg = avg_ignore_zero_and_na(das_data["max_Rh"]) if "max_Rh" in das_data else None
+    min_rh_avg = avg_ignore_zero_and_na(das_data["min_Rh"]) if "min_Rh" in das_data else None
 
     return {
         "rainfall_last_week": rainfall_last_week,
@@ -179,7 +202,7 @@ def calculate_weather_metrics(weather_data, level, name, sowing_date_str, curren
         "max_rh_avg": max_rh_avg,
         "min_rh_avg": min_rh_avg,
         "das": das,
-        "das_data": das_data
+        "das_data": das_data,
     }
 
 def get_sowing_comments(sowing_date_str, district, taluka, circle, crop, sowing_df):
@@ -188,6 +211,7 @@ def get_sowing_comments(sowing_date_str, district, taluka, circle, crop, sowing_
     sowing_dt = datetime.strptime(sowing_date_str, "%d/%m/%Y")
     results = []
 
+    # Filters hierarchy
     filters = [
         (sowing_df["District"] == district) & (sowing_df["Taluka"] == taluka) & (sowing_df["Circle"] == circle) & (sowing_df["Crop"] == crop),
         (sowing_df["District"] == district) & (sowing_df["Taluka"] == taluka) & (sowing_df["Crop"] == crop),
@@ -211,15 +235,15 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
     candidates = rules_df[rules_df["Crop"] == crop]
     if candidates.empty:
         return None
+
     for _, row in candidates.iterrows():
-        if str(row.get("DAS (Days After Sowing)", "")).strip() != "":
-            if das_in_range_string(das, row.get("DAS (Days After Sowing)", "")):
-                return {
-                    "growth_stage": row.get("Growth Stage", "Unknown"),
-                    "das": das,
-                    "ideal_water": row.get("Ideal Water Required (in mm)", ""),
-                    "farmer_advisory": row.get("Farmer Advisory", "")
-                }
+        if das_in_range_string(das, row.get("DAS (Days After Sowing)", "")):
+            return {
+                "growth_stage": row.get("Growth Stage", "Unknown"),
+                "das": das,
+                "ideal_water": row.get("Ideal Water Required (in mm)", ""),
+                "farmer_advisory": row.get("Farmer Advisory", "")
+            }
     return None
 
 # -----------------------------
@@ -232,6 +256,8 @@ st.markdown(
     "Please select dates within this range.",
     unsafe_allow_html=True
 )
+
+st.write("📍 Select a location and crop, enter **Sowing Date** & **Current Date**, then click **Generate Advisory**.")
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -282,7 +308,18 @@ if generate:
             for comment in sowing_comments:
                 st.write(f"• {comment}")
         else:
-            st.info("No matching sowing comments found.")
+            st.write("No matching sowing comments found.")
+
+        st.markdown("---")
+        st.header("🌱 Growth Stage Advisory")
+        growth_data = get_growth_advisory(crop, metrics["das"], metrics["rainfall_das"], rules_df)
+        if growth_data:
+            st.write(f"**Growth Stage:** {growth_data['growth_stage']}")
+            st.write(f"**DAS:** {growth_data['das']}")
+            st.write(f"**Ideal Water Required (mm):** {growth_data['ideal_water']}")
+            st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
+        else:
+            st.write("No matching growth advisory found.")
 
         st.markdown("---")
         st.header("📅 Daily Weather Data (Highlighted Rainy Days)")
@@ -294,7 +331,7 @@ if generate:
             display_df = display_df[columns_to_show]
 
             def highlight_rainy_days(row):
-                return ["background-color: #e0f4ff" if row["Rainfall"] > 0 else "" for _ in row]
+                return ["background-color: #add8e6" if row["Rainfall"] > 0 else "" for _ in row]
 
             st.dataframe(display_df.style.apply(highlight_rainy_days, axis=1), use_container_width=True)
         else:
