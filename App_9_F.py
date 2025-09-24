@@ -287,12 +287,13 @@ st.markdown(
         🌾 Empowering Farmers with Data-Driven Insights 🌾
         </span><br>
         <span style="font-size:13px; color:gray;">
-        Version 1.0 | Powered by Streamlit | Last Updated: Sept 2025
+        Version 1.0 | Powered by Agricose | Last Updated: Sept 2025
         </span>
     </div>
     """,
     unsafe_allow_html=True
 )
+
 
 
 
