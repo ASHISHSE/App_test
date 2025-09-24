@@ -192,29 +192,9 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
 # -----------------------------
 # UI
 # -----------------------------
-st.markdown(
-    "<h1 style='text-align: center;'>🌱 Crop Advisory System</h1>",
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    """
-    <div style='text-align: center; color: red; font-weight: bold;'>
-        ⚠️ Testing Version:
-        <span style='color: black; font-weight: normal;'>
-        Data uploaded from <b>01 June 2024</b> to <b>31 Oct 2024</b>. <br>
-        Please select dates within this range.
-        </span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    "<p style='text-align: center; font-size: 16px;'>📍 Select a location and crop, enter <b>Sowing Date</b> & <b>Current Date</b>, then click <b>Generate Advisory</b>.</p>",
-    unsafe_allow_html=True
-)
-
+st.title("🌱 Crop Advisory System") 
+st.markdown( "<span style='color: red; font-weight: bold;'>⚠️ Testing Version:</span> " "Data uploaded from <b>01 June 2024</b> to <b>31 Oct 2024</b>. " "Please select dates within this range.", unsafe_allow_html=True ) 
+st.write("📍 Select a location and crop, enter **Sowing Date** & **Current Date**, then click **Generate Advisory**.")
 
 
 col1, col2, col3 = st.columns(3)
@@ -295,6 +275,7 @@ if generate:
             st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
         else:
             st.write("No matching growth advisory found.")
+
 
 
 
