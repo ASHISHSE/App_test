@@ -200,6 +200,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+st.write("📍 Select a location and crop, enter **Sowing Date** & **Current Date**, then click **Generate Advisory**.")
+
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -279,5 +281,6 @@ if generate:
             st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
         else:
             st.write("No matching growth advisory found.")
+
 
 
