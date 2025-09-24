@@ -15,7 +15,7 @@ st.set_page_config(page_title="Crop Advisory System", page_icon="🌱", layout="
 def load_data():
     weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather.xlsx"
     rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules.xlsx"
-    sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar.xlsx"
+    sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar1.xlsx"
 
     wres = requests.get(weather_url, timeout=10)
     rres = requests.get(rules_url, timeout=10)
@@ -273,3 +273,4 @@ if generate:
             st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
         else:
             st.write("No matching growth advisory found.")
+
