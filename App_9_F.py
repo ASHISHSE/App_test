@@ -8,9 +8,9 @@ from io import BytesIO
 
 st.set_page_config(page_title="Crop Advisory System", page_icon="🌱", layout="wide")
 
-# -----------------------------
+# -------------------------
 # Load Data First (avoids NameError)
-# -----------------------------
+# ----------------------------
 @st.cache_data
 def load_data():
     weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather.xlsx"
@@ -275,6 +275,25 @@ if generate:
             st.write(f"**Farmer Advisory:** {growth_data['farmer_advisory']}")
         else:
             st.write("No matching growth advisory found.")
+            
+
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; font-size: 16px; margin-top: 20px;'>
+        💻 <b>Developed by:</b> Ashish Selokar <br>
+        📧 Suggestions & Concerns: <a href="mailto:ashish111.selokar@gmail.com">ashish111.selokar@gmail.com</a> <br><br>
+        <span style="font-size:15px; color:green;">
+        🌾 Empowering Farmers with Data-Driven Insights 🌾
+        </span><br>
+        <span style="font-size:13px; color:gray;">
+        Version 1.0 | Powered by Streamlit | Last Updated: Sept 2025
+        </span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 
 
