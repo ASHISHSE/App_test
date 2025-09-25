@@ -351,7 +351,7 @@ if generate:
         st.header("📊 Circlewise Data Matrix (NDVI, NDWI, Rainfall Dev, MAI, Indicators)")
         
         # Debug information
-        s#t.subheader("🔍 Debug Information")
+        #st.subheader("🔍 Debug Information")
         #st.write(f"**Sowing Date:** {sowing_date}")
         #st.write(f"**Current Date:** {current_date}")
         #st.write(f"**District:** {district}, **Taluka:** {taluka}, **Circle:** {circle}")
@@ -381,7 +381,7 @@ if generate:
             #st.write("Columns:", list(matrix_data.columns))
 
         else:
-            #st.error("No Circlewise Data Matrix available for selected range.")
+            st.error("No Circlewise Data Matrix available for selected range.")
             st.info("""
             **Troubleshooting tips:**
             1. Check if the selected District, Taluka, and Circle exist in the data
@@ -408,4 +408,5 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
