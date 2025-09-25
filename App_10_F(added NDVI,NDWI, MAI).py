@@ -341,9 +341,11 @@ if generate:
                 st.info("No numeric NDVI/NDWI values found for plotting.")
         else:
             st.info("No Circlewise Data Matrix available for selected range.")
-        st.markdown("---")
-        st.markdown("""
-        <div style='text-align: center; font-size: 16px; margin-top: 20px;'>
+       
+   st.markdown("---")
+   st.markdown(
+    """
+    <div style='text-align: center; font-size: 16px; margin-top: 20px;'>
         💻 <b>Developed by:</b> Ashish Selokar <br>
         📧 For suggestions or queries, please email at: <a href="mailto:ashish111.selokar@gmail.com">ashish111.selokar@gmail.com</a> <br><br>
         <span style="font-size:15px; color:green;">
@@ -356,10 +358,5 @@ if generate:
     """,
     unsafe_allow_html=True
 )
-        st.markdown("---")
-        st.markdown("""
-        <div style='text-align: center; font-size: 16px; margin-top: 20px;'>
-        💻 <b>Developed by:</b> Ashish Selokar <br>
-        📧 For suggestions or queries, email: 
-        <
+
 
