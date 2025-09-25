@@ -381,7 +381,7 @@ if generate:
             #st.write("Columns:", list(matrix_data.columns))
 
         else:
-            st.error("No Circlewise Data Matrix available for selected range.")
+            #st.error("No Circlewise Data Matrix available for selected range.")
             st.info("""
             **Troubleshooting tips:**
             1. Check if the selected District, Taluka, and Circle exist in the data
@@ -408,6 +408,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
