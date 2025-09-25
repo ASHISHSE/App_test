@@ -363,11 +363,11 @@ if generate:
                 if isinstance(val, str):
                     val_lower = val.lower()
                     if "normal" in val_lower or "good" in val_lower:
-                        return "background-color: #C6F6D5"  # Light Green
+                        return "background-color: #12c641"  # Light Green
                     elif "deficit" in val_lower or "moderate" in val_lower:
-                        return "background-color: #FEEBC8"  # Light Orange
+                        return "background-color: #e4e71c"  # Light Orange
                     elif "excess" in val_lower or "poor" in val_lower:
-                        return "background-color: #FED7D7"  # Light Red
+                        return "background-color: #ef400b"  # Light Red
                     elif "above" in val_lower:
                         return "background-color: #BEE3F8"  # Light Blue
                 return ""
@@ -408,3 +408,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
