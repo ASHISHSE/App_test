@@ -7,12 +7,11 @@ import requests
 from io import BytesIO
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", layout="wide")
 
 # -----------------------------
-# LOAD DATA (WEATHER, RULES, SOWING)
+# LOAD DATA
 # -----------------------------
 @st.cache_data
 def load_data():
@@ -57,7 +56,6 @@ def load_data():
 
     return weather_df, rules_df, sowing_df, districts, talukas, circles, crops
 
-# Load data before UI
 weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data()
 
 # -----------------------------
@@ -71,7 +69,7 @@ def load_circlewise_data():
 circlewise_df = load_circlewise_data()
 
 # -----------------------------
-# FUNCTIONS TO PROCESS CIRCLEWISE DATA
+# FUNCTIONS
 # -----------------------------
 def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     df = circlewise_df.copy()
@@ -81,7 +79,6 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     if df.empty:
         return pd.DataFrame()
 
-    # Generate list of months between sowing_date and current_date
     months = []
     current = sowing_date.replace(day=1)
     end = current_date.replace(day=1)
@@ -150,19 +147,32 @@ def create_monthly_analysis(matrix_data):
         monthly_data.append(month_data)
     return pd.DataFrame(monthly_data)
 
-def create_indices_line_chart(monthly_df):
+def create_single_index_chart(monthly_df, index_col, index_name, line_color):
+    if monthly_df is None or monthly_df.empty:
+        return None
+    monthly_df['Month_Num'] = monthly_df['Month'].apply(lambda x: datetime.strptime(x, '%B').month)
+    monthly_df = monthly_df.sort_values('Month_Num')
+    if monthly_df[index_col].isna().all():
+        return None
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=monthly_df['Month'], y=monthly_df[index_col],
+                             mode='lines+markers', name=index_name,
+                             line=dict(color=line_color)))
+    fig.update_layout(title=f"Monthly {index_name} Trend",
+                      xaxis_title="Month", yaxis_title=f"{index_name} Value")
+    return fig
+
+def create_indicator_bar_chart(monthly_df):
     if monthly_df is None or monthly_df.empty:
         return None
     monthly_df['Month_Num'] = monthly_df['Month'].apply(lambda x: datetime.strptime(x, '%B').month)
     monthly_df = monthly_df.sort_values('Month_Num')
     fig = go.Figure()
-    if any(pd.notna(monthly_df['NDVI_Value'])):
-        fig.add_trace(go.Scatter(x=monthly_df['Month'], y=monthly_df['NDVI_Value'], mode='lines+markers', name='NDVI', line=dict(color='green')))
-    if any(pd.notna(monthly_df['NDWI_Value'])):
-        fig.add_trace(go.Scatter(x=monthly_df['Month'], y=monthly_df['NDWI_Value'], mode='lines+markers', name='NDWI', line=dict(color='blue')))
-    if any(pd.notna(monthly_df['MAI_Value'])):
-        fig.add_trace(go.Scatter(x=monthly_df['Month'], y=monthly_df['MAI_Value'], mode='lines+markers', name='MAI', line=dict(color='orange')))
-    fig.update_layout(title="Monthly NDVI, NDWI, MAI Trend", xaxis_title="Month", yaxis_title="Index Value")
+    fig.add_trace(go.Bar(x=monthly_df['Month'], y=monthly_df['Indicator_1'], name='Indicator-1'))
+    fig.add_trace(go.Bar(x=monthly_df['Month'], y=monthly_df['Indicator_2'], name='Indicator-2'))
+    fig.add_trace(go.Bar(x=monthly_df['Month'], y=monthly_df['Indicator_3'], name='Indicator-3'))
+    fig.update_layout(barmode='group', title="Monthly Indicators (1, 2, 3)",
+                      xaxis_title="Month", yaxis_title="Indicator Values")
     return fig
 
 # -----------------------------
@@ -191,10 +201,17 @@ if generate:
             st.dataframe(matrix_data, use_container_width=True)
         with tab2:
             if monthly_df is not None and not monthly_df.empty:
-                st.subheader("NDVI, NDWI & MAI Trend")
-                fig_indices = create_indices_line_chart(monthly_df)
-                if fig_indices:
-                    st.plotly_chart(fig_indices, use_container_width=True)
+                st.subheader("📈 Monthly Trends (NDVI, NDWI, MAI)")
+                ndvi_chart = create_single_index_chart(monthly_df, "NDVI_Value", "NDVI", "green")
+                if ndvi_chart: st.plotly_chart(ndvi_chart, use_container_width=True)
+                ndwi_chart = create_single_index_chart(monthly_df, "NDWI_Value", "NDWI", "blue")
+                if ndwi_chart: st.plotly_chart(ndwi_chart, use_container_width=True)
+                mai_chart = create_single_index_chart(monthly_df, "MAI_Value", "MAI", "orange")
+                if mai_chart: st.plotly_chart(mai_chart, use_container_width=True)
+
+                st.subheader("📊 Monthly Indicator Comparison")
+                indicator_chart = create_indicator_bar_chart(monthly_df)
+                if indicator_chart: st.plotly_chart(indicator_chart, use_container_width=True)
             else:
                 st.info("No monthly data available.")
     else:
