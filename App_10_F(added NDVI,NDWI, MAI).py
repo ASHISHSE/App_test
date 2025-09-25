@@ -193,16 +193,16 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
 # -----------------------------
 def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     df = circlewise_df.copy()
-    df = df[(df["DTENAME"] == district) & (df["THENAME"] == taluka)]
+    df = df[(df["District"] == district) & (df["Taluka"] == taluka)]
     if circle:
-        df = df[df["CIRNAME"] == circle]
+        df = df[df["Circle"] == circle]
     if df.empty:
         return pd.DataFrame()
 
     months = pd.date_range(start=sowing_date.replace(day=1),
                            end=current_date.replace(day=1),
                            freq='MS').strftime("%B").tolist()
-    selected_cols = ["DTENAME", "THENAME", "CIRNAME"]
+    selected_cols = ["District", "Taluka", "Circle"]
 
     for month in months:
         pattern = fr"(NDVI|NDWI|RAINFALL_DEV|MAI|Indicator).*{month}_2024"
@@ -360,5 +360,6 @@ st.markdown(
     unsafe_allow_html=True
 )
        
+
 
 
