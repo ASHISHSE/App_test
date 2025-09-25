@@ -356,7 +356,7 @@ if generate:
         #st.write(f"**Current Date:** {current_date}")
         #st.write(f"**District:** {district}, **Taluka:** {taluka}, **Circle:** {circle}")
         
-        #matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
+        matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
         
         if not matrix_data.empty:
             def color_categories(val):
@@ -408,6 +408,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
