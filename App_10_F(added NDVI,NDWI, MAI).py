@@ -348,7 +348,7 @@ if generate:
 
         # Circlewise Data Matrix
         st.markdown("---")
-        #st.header("📊 Circlewise Data Matrix (NDVI, NDWI, Rainfall Dev, MAI, Indicators)")
+        st.header("📊 Circlewise Data Matrix (NDVI, NDWI, Rainfall Dev, MAI, Indicators)")
         
         # Debug information
         #st.subheader("🔍 Debug Information")
@@ -408,6 +408,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
