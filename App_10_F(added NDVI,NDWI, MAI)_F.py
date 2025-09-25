@@ -69,7 +69,7 @@ def load_circlewise_data():
 circlewise_df = load_circlewise_data()
 
 # -----------------------------
-# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA (CLEAN VERSION - NO DEBUG MESSAGES)
+# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA
 # -----------------------------
 def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     df = circlewise_df.copy()
@@ -122,117 +122,104 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     return df[selected_cols]
 
 # -----------------------------
-# HELPER FUNCTIONS FOR ATTRACTIVE DISPLAY
+# NEW FUNCTION FOR MONTHLY ANALYSIS
 # -----------------------------
-def get_parameter_icon(parameter):
-    icons = {
-        'NDVI': '🌿',
-        'NDWI': '💧',
-        'RAINFALL': '🌧️',
-        'MAI': '📊',
-        'INDICATOR': '📈'
-    }
-    for key, icon in icons.items():
-        if key in parameter.upper():
-            return icon
-    return '📋'
+def create_monthly_analysis(matrix_data):
+    """Create detailed monthly analysis with index values and categories"""
+    if matrix_data.empty:
+        return None
+    
+    monthly_data = []
+    
+    # Extract months from column names
+    months = set()
+    for col in matrix_data.columns:
+        if '_' in col and any(month in col for month in ['January', 'February', 'March', 'April', 'May', 'June', 
+                                                       'July', 'August', 'September', 'October', 'November', 'December']):
+            for month in ['January', 'February', 'March', 'April', 'May', 'June', 
+                         'July', 'August', 'September', 'October', 'November', 'December']:
+                if month in col:
+                    months.add(month)
+                    break
+    
+    months = sorted(months, key=lambda x: datetime.strptime(x, "%B"))
+    
+    for month in months:
+        month_data = {
+            'Month': month,
+            'NDVI_Value': None,
+            'NDVI_Category': None,
+            'NDWI_Value': None,
+            'NDWI_Category': None,
+            'Rainfall_Dev_Value': None,
+            'Rainfall_Dev_Category': None,
+            'MAI_Value': None,
+            'MAI_Category': None,
+            'Indicator_1': None,
+            'Indicator_2': None,
+            'Indicator_3': None
+        }
+        
+        # Extract values for each parameter
+        for col in matrix_data.columns:
+            col_lower = col.lower()
+            if month.lower() in col_lower:
+                value = matrix_data[col].iloc[0] if not matrix_data[col].empty else None
+                
+                if 'ndvi' in col_lower and 'cat' not in col_lower:
+                    month_data['NDVI_Value'] = value
+                elif 'ndvi' in col_lower and 'cat' in col_lower:
+                    month_data['NDVI_Category'] = value
+                elif 'ndwi' in col_lower and 'cat' not in col_lower:
+                    month_data['NDWI_Value'] = value
+                elif 'ndwi' in col_lower and 'cat' in col_lower:
+                    month_data['NDWI_Category'] = value
+                elif 'rainfall_dev' in col_lower and 'cat' not in col_lower:
+                    month_data['Rainfall_Dev_Value'] = value
+                elif 'rainfall_dev' in col_lower and 'cat' in col_lower:
+                    month_data['Rainfall_Dev_Category'] = value
+                elif 'mai' in col_lower and 'cat' not in col_lower:
+                    month_data['MAI_Value'] = value
+                elif 'mai' in col_lower and 'cat' in col_lower:
+                    month_data['MAI_Category'] = value
+                elif 'indicator-1' in col_lower or 'indicator-1' in col_lower:
+                    month_data['Indicator_1'] = value
+                elif 'indicator-2' in col_lower or 'indicator-2' in col_lower:
+                    month_data['Indicator_2'] = value
+                elif 'indicator-3' in col_lower or 'indicator-3' in col_lower:
+                    month_data['Indicator_3'] = value
+        
+        monthly_data.append(month_data)
+    
+    return pd.DataFrame(monthly_data)
 
 def get_status_color(status):
+    """Get color based on status"""
+    if pd.isna(status):
+        return '#f8f9fa'
     status_lower = str(status).lower()
-    if any(word in status_lower for word in ['good', 'normal', 'above', 'excellent']):
-        return '🟢'  # Green
-    elif any(word in status_lower for word in ['moderate', 'average', 'medium']):
-        return '🟡'  # Yellow
-    elif any(word in status_lower for word in ['poor', 'deficit', 'below', 'low']):
-        return '🔴'  # Red
+    if any(word in status_lower for word in ['good', 'normal', 'above', 'excellent', 'satisfactory']):
+        return '#d4edda'  # Light Green
+    elif any(word in status_lower for word in ['moderate', 'average', 'medium', 'moderately']):
+        return '#fff3cd'  # Light Yellow
+    elif any(word in status_lower for word in ['poor', 'deficit', 'below', 'low', 'unsatisfactory']):
+        return '#f8d7da'  # Light Red
     else:
-        return '⚪'  # Default
+        return '#e9ecef'  # Default
 
-def format_column_name(col_name):
-    """Format column names for better readability"""
-    if '_CAT' in col_name:
-        return 'Status'
-    
-    # Extract parameter and month
-    parts = col_name.split('_')
-    if len(parts) >= 3:
-        parameter = parts[0]
-        month = parts[1]
-        icon = get_parameter_icon(parameter)
-        return f"{icon} {parameter} ({month})"
-    
-    return col_name
-
-def create_summary_cards(matrix_data):
-    """Create summary cards for quick overview"""
-    if matrix_data.empty:
-        return
-    
-    # Extract numeric values and status values
-    numeric_data = []
-    status_data = []
-    
-    for col in matrix_data.columns:
-        if col in ['District', 'Taluka', 'Circle']:
-            continue
-        
-        if '_CAT' in col:
-            status_data.extend(matrix_data[col].dropna().tolist())
-        else:
-            numeric_data.extend(pd.to_numeric(matrix_data[col], errors='coerce').dropna().tolist())
-    
-    if numeric_data:
-        avg_value = np.mean(numeric_data)
-        max_value = np.max(numeric_data)
-        min_value = np.min(numeric_data)
+def get_status_icon(status):
+    """Get icon based on status"""
+    if pd.isna(status):
+        return '⚪'
+    status_lower = str(status).lower()
+    if any(word in status_lower for word in ['good', 'normal', 'above', 'excellent', 'satisfactory']):
+        return '🟢'
+    elif any(word in status_lower for word in ['moderate', 'average', 'medium', 'moderately']):
+        return '🟡'
+    elif any(word in status_lower for word in ['poor', 'deficit', 'below', 'low', 'unsatisfactory']):
+        return '🔴'
     else:
-        avg_value = max_value = min_value = 0
-    
-    # Count status occurrences
-    status_counts = {}
-    for status in status_data:
-        status_str = str(status).lower()
-        if 'good' in status_str or 'normal' in status_str:
-            status_counts['good'] = status_counts.get('good', 0) + 1
-        elif 'moderate' in status_str:
-            status_counts['moderate'] = status_counts.get('moderate', 0) + 1
-        elif 'poor' in status_str or 'deficit' in status_str:
-            status_counts['poor'] = status_counts.get('poor', 0) + 1
-    
-    # Create cards
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric(
-            label="📊 Average Index Value",
-            value=f"{avg_value:.2f}",
-            help="Average of all numeric indices"
-        )
-    
-    with col2:
-        st.metric(
-            label="📈 Value Range",
-            value=f"{min_value:.1f} - {max_value:.1f}",
-            help="Range of index values across all parameters"
-        )
-    
-    with col3:
-        good_count = status_counts.get('good', 0)
-        total_status = len(status_data)
-        percentage = (good_count / total_status * 100) if total_status > 0 else 0
-        st.metric(
-            label="🟢 Good Conditions",
-            value=f"{good_count}/{total_status}",
-            delta=f"{percentage:.1f}%",
-            help="Parameters with good/normal conditions"
-        )
-    
-    with col4:
-        st.metric(
-            label="📅 Months Analyzed",
-            value=len(set([col.split('_')[1] for col in matrix_data.columns if '_' in col and col.split('_')[1] in ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']])),
-            help="Number of months included in analysis"
-        )
+        return '⚪'
 
 # -----------------------------
 # OTHER HELPER FUNCTIONS
@@ -448,7 +435,7 @@ if generate:
         else:
             st.write("No matching growth advisory found.")
 
-        # Circlewise Data Matrix - ENHANCED DISPLAY
+        # Circlewise Data Matrix - ENHANCED MONTHLY ANALYSIS
         st.markdown("---")
         
         # Header with better styling
@@ -459,9 +446,9 @@ if generate:
                     color: white; 
                     text-align: center;
                     margin-bottom: 20px;'>
-            <h1 style='margin: 0; font-size: 28px;'>🌾 Crop Health & Environment Matrix</h1>
+            <h1 style='margin: 0; font-size: 28px;'>🌾 Monthly Crop Health Analysis</h1>
             <p style='margin: 5px 0 0 0; font-size: 16px; opacity: 0.9;'>
-                Comprehensive analysis of vegetation, water, rainfall, and moisture indices
+                Detailed monthly breakdown of vegetation, water, rainfall, and moisture indices
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -469,103 +456,102 @@ if generate:
         matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
         
         if not matrix_data.empty:
-            # Summary Cards
-            create_summary_cards(matrix_data)
+            # Create monthly analysis
+            monthly_df = create_monthly_analysis(matrix_data)
             
-            st.markdown("---")
-            
-            # Legend for understanding the data
-            st.subheader("🎨 Understanding the Indicators")
-            
-            legend_col1, legend_col2, legend_col3 = st.columns(3)
-            
-            with legend_col1:
-                st.markdown("""
-                **🌿 Vegetation Health (NDVI)**
-                - Measures plant health and density
-                - Higher values = healthier vegetation
-                """)
-            
-            with legend_col2:
-                st.markdown("""
-                **💧 Water Content (NDWI)**
-                - Measures water content in vegetation
-                - Higher values = better water status
-                """)
-            
-            with legend_col3:
-                st.markdown("""
-                **🌧️ Rainfall & Moisture**
-                - Rainfall deviation from normal
-                - Moisture Availability Index (MAI)
-                """)
-            
-            # Status Legend
-            status_legend_col1, status_legend_col2, status_legend_col3 = st.columns(3)
-            
-            with status_legend_col1:
-                st.markdown("🟢 **Good/Normal**: Optimal conditions")
-            with status_legend_col2:
-                st.markdown("🟡 **Moderate**: Acceptable but monitor")
-            with status_legend_col3:
-                st.markdown("🔴 **Poor/Deficit**: Needs attention")
-            
-            st.markdown("---")
-            
-            # Enhanced Data Display
-            st.subheader("📋 Detailed Parameter Analysis")
-            
-            # Create a copy for display with formatted column names
-            display_data = matrix_data.copy()
-            display_data.columns = [format_column_name(col) for col in display_data.columns]
-            
-            def enhanced_color_categories(val, column_name):
-                if 'Status' in column_name:
-                    status_lower = str(val).lower()
-                    if any(word in status_lower for word in ['good', 'normal', 'above']):
-                        return 'background-color: #d4edda; color: #155724; font-weight: bold;'
-                    elif any(word in status_lower for word in ['moderate', 'average']):
-                        return 'background-color: #fff3cd; color: #856404; font-weight: bold;'
-                    elif any(word in status_lower for word in ['poor', 'deficit', 'below']):
-                        return 'background-color: #f8d7da; color: #721c24; font-weight: bold;'
+            if monthly_df is not None and not monthly_df.empty:
+                # Display monthly analysis in tabs
+                tab1, tab2 = st.tabs(["📊 Monthly Summary Table", "📈 Detailed Monthly Analysis"])
                 
-                # Color code numeric values
-                try:
-                    num_val = float(val)
-                    if num_val >= 0.7:
-                        return 'background-color: #d4edda;'  # Green for high values
-                    elif num_val >= 0.4:
-                        return 'background-color: #fff3cd;'  # Yellow for medium values
-                    else:
-                        return 'background-color: #f8d7da;'  # Red for low values
-                except (ValueError, TypeError):
-                    return ''
-            
-            # Apply styling
-            styled_data = display_data.style
-            for col in display_data.columns:
-                styled_data = styled_data.applymap(
-                    lambda x, col=col: enhanced_color_categories(x, col), 
-                    subset=[col]
+                with tab1:
+                    st.subheader("Monthly Index Summary")
+                    
+                    # Create a simplified summary table
+                    summary_data = []
+                    for _, row in monthly_df.iterrows():
+                        summary_data.append({
+                            'Month': row['Month'],
+                            '🌿 NDVI': f"{row['NDVI_Value'] if pd.notna(row['NDVI_Value']) else 'N/A'} {get_status_icon(row['NDVI_Category'])}",
+                            '💧 NDWI': f"{row['NDWI_Value'] if pd.notna(row['NDWI_Value']) else 'N/A'} {get_status_icon(row['NDWI_Category'])}",
+                            '🌧️ Rainfall Dev': f"{row['Rainfall_Dev_Value'] if pd.notna(row['Rainfall_Dev_Value']) else 'N/A'} {get_status_icon(row['Rainfall_Dev_Category'])}",
+                            '📊 MAI': f"{row['MAI_Value'] if pd.notna(row['MAI_Value']) else 'N/A'} {get_status_icon(row['MAI_Category'])}"
+                        })
+                    
+                    summary_df = pd.DataFrame(summary_data)
+                    st.dataframe(summary_df, use_container_width=True)
+                
+                with tab2:
+                    st.subheader("Detailed Monthly Analysis")
+                    
+                    # Display each month in an expandable section
+                    for _, month_data in monthly_df.iterrows():
+                        with st.expander(f"📅 {month_data['Month']} 2024 - Detailed Analysis", expanded=True):
+                            col1, col2, col3, col4 = st.columns(4)
+                            
+                            with col1:
+                                st.markdown(f"### 🌿 Vegetation Health (NDVI)")
+                                st.metric("Value", f"{month_data['NDVI_Value']:.3f}" if pd.notna(month_data['NDVI_Value']) else "N/A")
+                                st.markdown(f"**Status:** {get_status_icon(month_data['NDVI_Category'])} {month_data['NDVI_Category']}")
+                            
+                            with col2:
+                                st.markdown(f"### 💧 Water Content (NDWI)")
+                                st.metric("Value", f"{month_data['NDWI_Value']:.3f}" if pd.notna(month_data['NDWI_Value']) else "N/A")
+                                st.markdown(f"**Status:** {get_status_icon(month_data['NDWI_Category'])} {month_data['NDWI_Category']}")
+                            
+                            with col3:
+                                st.markdown(f"### 🌧️ Rainfall Deviation")
+                                st.metric("Value", f"{month_data['Rainfall_Dev_Value']:.1f}%" if pd.notna(month_data['Rainfall_Dev_Value']) else "N/A")
+                                st.markdown(f"**Status:** {get_status_icon(month_data['Rainfall_Dev_Category'])} {month_data['Rainfall_Dev_Category']}")
+                            
+                            with col4:
+                                st.markdown(f"### 📊 Moisture Index (MAI)")
+                                st.metric("Value", f"{month_data['MAI_Value']:.1f}" if pd.notna(month_data['MAI_Value']) else "N/A")
+                                st.markdown(f"**Status:** {get_status_icon(month_data['MAI_Category'])} {month_data['MAI_Category']}")
+                            
+                            # Indicators section
+                            st.markdown("---")
+                            st.markdown("### 📈 Combined Indicators")
+                            
+                            ind_col1, ind_col2, ind_col3 = st.columns(3)
+                            
+                            with ind_col1:
+                                st.markdown("#### Indicator 1: NDVI/NDWI")
+                                st.markdown(f"**Status:** {get_status_icon(month_data['Indicator_1'])} {month_data['Indicator_1']}")
+                                st.info("Measures vegetation health relative to water content")
+                            
+                            with ind_col2:
+                                st.markdown("#### Indicator 2: Rainfall/MAI")
+                                st.markdown(f"**Status:** {get_status_icon(month_data['Indicator_2'])} {month_data['Indicator_2']}")
+                                st.info("Compares rainfall deviation with moisture availability")
+                            
+                            with ind_col3:
+                                st.markdown("#### Indicator 3: Composite")
+                                st.markdown(f"**Status:** {get_status_icon(month_data['Indicator_3'])} {month_data['Indicator_3']}")
+                                st.info("Overall crop health and environmental condition")
+                
+                # Download option
+                st.markdown("---")
+                csv = monthly_df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download Monthly Analysis as CSV",
+                    data=csv,
+                    file_name=f"monthly_analysis_{district}_{taluka}_{circle}.csv",
+                    mime="text/csv"
                 )
             
-            # Display the dataframe
-            st.dataframe(styled_data, use_container_width=True, height=400)
-            
-            # Download option
-            csv = matrix_data.to_csv(index=False)
-            st.download_button(
-                label="📥 Download Data Matrix as CSV",
-                data=csv,
-                file_name=f"crop_health_matrix_{district}_{taluka}_{circle}.csv",
-                mime="text/csv"
-            )
-            
+            else:
+                st.warning("Could not extract monthly analysis data from the matrix.")
+                
+            # Original matrix display (collapsible)
+            with st.expander("🔍 View Original Data Matrix"):
+                st.subheader("Original Data Matrix")
+                st.dataframe(matrix_data, use_container_width=True)
+                
         else:
             st.info("""
             ## 📊 No Data Available
             
-            The Crop Health & Environment Matrix is not available for the selected parameters. 
+            The Monthly Crop Health Analysis is not available for the selected parameters. 
             This could be due to:
             
             - **Data availability**: The selected area might not have satellite data coverage
