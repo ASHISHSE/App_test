@@ -69,25 +69,21 @@ def load_circlewise_data():
 circlewise_df = load_circlewise_data()
 
 # -----------------------------
-# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA
+# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA (FIXED BASED ON YOUR IMAGE)
 # -----------------------------
 def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     df = circlewise_df.copy()
 
     # Filter by District, Taluka, Circle
     df = df[(df["District"] == district) & (df["Taluka"] == taluka)]
-    if circle:
+    if circle and "Circle" in df.columns:
         df = df[df["Circle"] == circle]
 
     if df.empty:
+        st.warning(f"No data found for District: {district}, Taluka: {taluka}, Circle: {circle}")
         return pd.DataFrame()
 
     # Generate list of months between sowing_date and current_date
-    # Start from the month of sowing_date, end with the month of current_date
-    start_month = sowing_date.strftime("%B")
-    end_month = current_date.strftime("%B")
-    
-    # Get all months in between (inclusive)
     months = []
     current = sowing_date.replace(day=1)
     end = current_date.replace(day=1)
@@ -102,27 +98,39 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
 
     # Remove duplicates while preserving order
     months = list(dict.fromkeys(months))
+    
+    st.info(f"Looking for months: {months}")
 
     # Select relevant columns (District, Taluka, Circle + monthly data columns)
     selected_cols = ["District", "Taluka", "Circle"]
     
     # Get all columns that contain any of the target months
-    for col in df.columns:
+    all_columns = df.columns.tolist()
+    st.info(f"Available columns: {all_columns[:10]}...")  # Show first 10 columns for debugging
+    
+    for col in all_columns:
+        col_lower = str(col).lower()
         # Skip the basic identifier columns we already have
-        if col in ["District", "Taluka", "Circle"]:
+        if col in selected_cols:
             continue
             
         # Check if this column contains any of our target months
         for month in months:
-            if month.lower() in col.lower() and "2024" in col:
+            month_lower = month.lower()
+            if month_lower in col_lower and "2024" in col_lower:
                 selected_cols.append(col)
+                st.success(f"Found matching column: {col} for month: {month}")
                 break  # Avoid adding same column multiple times
 
     # Ensure we have some data columns beyond the basic identifiers
     if len(selected_cols) <= 3:
+        st.warning(f"No monthly data columns found for months: {months}")
+        st.warning(f"Selected columns: {selected_cols}")
         return pd.DataFrame()
 
-    return df[selected_cols]
+    result_df = df[selected_cols]
+    st.success(f"Successfully retrieved data with {len(selected_cols)-3} data columns")
+    return result_df
 
 # -----------------------------
 # HELPER FUNCTIONS
@@ -341,6 +349,13 @@ if generate:
         # Circlewise Data Matrix
         st.markdown("---")
         st.header("📊 Circlewise Data Matrix (NDVI, NDWI, Rainfall Dev, MAI, Indicators)")
+        
+        # Debug information
+        st.subheader("🔍 Debug Information")
+        st.write(f"**Sowing Date:** {sowing_date}")
+        st.write(f"**Current Date:** {current_date}")
+        st.write(f"**District:** {district}, **Taluka:** {taluka}, **Circle:** {circle}")
+        
         matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
         
         if not matrix_data.empty:
@@ -357,44 +372,22 @@ if generate:
                         return "background-color: #BEE3F8"  # Light Blue
                 return ""
 
+            st.subheader("📋 Data Matrix")
             st.dataframe(matrix_data.style.applymap(color_categories), use_container_width=True)
 
-            # NDVI/NDWI Trend (only for numeric columns)
-            st.subheader("📈 NDVI & NDWI Trend")
-            
-            # Extract numeric columns for plotting
-            numeric_data = matrix_data.select_dtypes(include=[np.number])
-            if not numeric_data.empty:
-                # Get NDVI and NDWI columns
-                ndvi_cols = [col for col in numeric_data.columns if 'ndvi' in col.lower()]
-                ndwi_cols = [col for col in numeric_data.columns if 'ndwi' in col.lower()]
-                
-                trend_data = []
-                
-                # Process NDVI data
-                for col in ndvi_cols:
-                    month = col.split('_')[1] if '_' in col else 'Unknown'
-                    for value in numeric_data[col]:
-                        trend_data.append({'Parameter': 'NDVI', 'Month': month, 'Value': value})
-                
-                # Process NDWI data
-                for col in ndwi_cols:
-                    month = col.split('_')[1] if '_' in col else 'Unknown'
-                    for value in numeric_data[col]:
-                        trend_data.append({'Parameter': 'NDWI', 'Month': month, 'Value': value})
-                
-                if trend_data:
-                    trend_df = pd.DataFrame(trend_data)
-                    fig = px.line(trend_df, x="Month", y="Value", color="Parameter",
-                                markers=True, title="NDVI & NDWI Monthly Trend")
-                    fig.update_layout(xaxis_title="Month", yaxis_title="Index Value", template="plotly_white")
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.info("No numeric NDVI/NDWI values found for plotting.")
-            else:
-                st.info("No numeric data available for trend plotting.")
+            # Display column information
+            st.subheader("📊 Column Information")
+            st.write(f"Total columns found: {len(matrix_data.columns)}")
+            st.write("Columns:", list(matrix_data.columns))
+
         else:
-            st.info("No Circlewise Data Matrix available for selected range.")
+            st.error("No Circlewise Data Matrix available for selected range.")
+            st.info("""
+            **Troubleshooting tips:**
+            1. Check if the selected District, Taluka, and Circle exist in the data
+            2. Verify that the dates are within the available data range (2024 months)
+            3. Ensure the Excel file has data for the selected months
+            """)
 
 # -----------------------------
 # FOOTER
@@ -405,10 +398,10 @@ st.markdown(
         💻 <b>Developed by:</b> Ashish Selokar <br>
         📧 For suggestions or queries, please email at:
         <a href="mailto:ashish111.selokar@gmail.com">ashish111.selokar@gmail.com</a> <br><br>
-        <span style="font-size:15px; color:green;">
+        <span style='font-size:15px; color:green;'>
             🌾 Empowering Farmers with Data-Driven Insights 🌾
         </span><br>
-        <span style="font-size:13px; color:gray;">
+        <span style='font-size:13px; color:gray;'>
             Version 1.0 | Powered by Agricose | Last Updated: Sept 2025
         </span>
     </div>
