@@ -55,7 +55,6 @@ def load_data():
 
     return weather_df, rules_df, sowing_df, districts, talukas, circles, crops
 
-
 # Load data before UI
 weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data()
 
@@ -64,7 +63,7 @@ weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data(
 # -----------------------------
 @st.cache_data
 def load_circlewise_data():
-    url ="https://github.com/ASHISHSE/App_test/raw/main/Circlewise_Data_Matrix_Indicator_2024_v1.xlsx"
+    url = "https://github.com/ASHISHSE/App_test/raw/main/Circlewise_Data_Matrix_Indicator_2024_v1.xlsx"
     res = requests.get(url, timeout=10)
     df = pd.read_excel(BytesIO(res.content))
     return df
@@ -187,30 +186,6 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
                 "farmer_advisory": row.get("Farmer Advisory", "")
             }
     return None
-
-# -----------------------------
-# FILTER FUNCTION FOR CIRCLEWISE DATA
-# -----------------------------
-def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
-    df = circlewise_df.copy()
-    df = df[(df["District"] == district) & (df["Taluka"] == taluka)]
-    if circle:
-        df = df[df["Circle"] == circle]
-    if df.empty:
-        return pd.DataFrame()
-
-    months = pd.date_range(start=sowing_date.replace(day=1),
-                           end=current_date.replace(day=1),
-                           freq='MS').strftime("%B").tolist()
-    selected_cols = ["District", "Taluka", "Circle"]
-
-    for month in months:
-        pattern = fr"(NDVI|NDWI|RAINFALL_DEV|MAI|Indicator).*{month}_2024"
-        month_cols = [c for c in df.columns if re.search(pattern, c)]
-        selected_cols.extend(month_cols)
-
-    df = df[selected_cols]
-    return df
 
 # -----------------------------
 # UI - SELECTIONS
@@ -342,7 +317,9 @@ if generate:
         else:
             st.info("No Circlewise Data Matrix available for selected range.")
 
-        st.markdown("---")
+# -----------------------------
+# FOOTER
+# -----------------------------
 st.markdown(
     """
     <div style='text-align: center; font-size: 16px; margin-top: 20px;'>
@@ -359,7 +336,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-       
-
-
-
