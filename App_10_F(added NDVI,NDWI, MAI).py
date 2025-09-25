@@ -395,7 +395,7 @@ if generate:
 st.markdown(
     """
     <div style='text-align: center; font-size: 16px; margin-top: 20px;'>
-        💻 <b>Developed by:</b> Ashish Selokar <br>
+           <b>Developed by:</b> Ashish Selokar <br>
         📧 For suggestions or queries, please email at:
         <a href="mailto:ashish111.selokar@gmail.com">ashish111.selokar@gmail.com</a> <br><br>
         <span style="font-size:15px; color:green;">
@@ -408,3 +408,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
