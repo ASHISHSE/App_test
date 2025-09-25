@@ -64,11 +64,87 @@ weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data(
 @st.cache_data
 def load_circlewise_data():
     url = "https://github.com/ASHISHSE/App_test/raw/main/Circlewise_Data_Matrix_Indicator_2024_v1.xlsx"
-    res = requests.get(url, timeout=10)
-    df = pd.read_excel(BytesIO(res.content))
-    return df
+    return pd.read_excel(url)
 
 circlewise_df = load_circlewise_data()
+
+# -----------------------------
+# HELPER FUNCTIONS
+# -----------------------------
+def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
+    df = circlewise_df.copy()
+
+    # Filter by District, Taluka, Circle
+    df = df[(df["District"] == district) & (df["Taluka"] == taluka)]
+    if circle:
+        df = df[df["Circle"] == circle]
+
+    if df.empty:
+        return pd.DataFrame()
+
+    # Generate list of months between sowing_date and current_date
+    months = pd.date_range(
+        start=sowing_date.replace(day=1),
+        end=current_date.replace(day=1),
+        freq='MS'
+    ).strftime("%B").tolist()
+
+    # Select relevant columns (District, Taluka, Circle + months)
+    selected_cols = ["District", "Taluka", "Circle"]
+    month_patterns = [f"{month}_2024" for month in months]
+
+    for col in df.columns:
+        if any(month_pattern in col for month_pattern in month_patterns):
+            selected_cols.append(col)
+
+    return df[selected_cols] if len(selected_cols) > 3 else pd.DataFrame()
+
+# -----------------------------
+# UI - SELECTIONS
+# -----------------------------
+st.markdown("### Select Parameters")
+col1, col2, col3, col4, col5 = st.columns(5)
+
+with col1:
+    district = st.selectbox("Select District", sorted(circlewise_df["District"].unique()))
+with col2:
+    taluka = st.selectbox("Select Taluka", sorted(circlewise_df[circlewise_df["District"] == district]["Taluka"].unique()))
+with col3:
+    circle = st.selectbox("Select Circle", sorted(circlewise_df[(circlewise_df["District"] == district) & (circlewise_df["Taluka"] == taluka)]["Circle"].unique()))
+with col4:
+    sowing_date = st.date_input("Select Sowing Date", value=date(2024, 6, 1), min_value=date(2024, 6, 1), max_value=date(2024, 10, 31))
+with col5:
+    current_date = st.date_input("Select Current Date", value=date.today(), min_value=date(2024, 6, 1), max_value=date(2024, 10, 31))
+
+generate = st.button("Generate Advisory")
+
+# -----------------------------
+# MAIN LOGIC
+# -----------------------------
+if generate:
+    st.markdown("---")
+    st.header("📊 Circlewise Data Matrix (NDVI, NDWI, Rainfall Deviation, MAI)")
+
+    matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
+
+    if not matrix_data.empty:
+        def color_categories(val):
+            if isinstance(val, str):
+                if "Normal" in val:
+                    return 'background-color: #C6F6D5'  # Light Green
+                elif "Deficit" in val:
+                    return 'background-color: #FEEBC8'  # Light Orange
+                elif "Excess" in val:
+                    return 'background-color: #FED7D7'  # Light Red
+                elif "Above" in val:
+                    return 'background-color: #BEE3F8'  # Light Blue
+            return ''
+
+        st.dataframe(matrix_data.style.applymap(color_categories))
+    else:
+        st.warning("No data available for selected filters.")
+
+
 
 # -----------------------------
 # HELPER FUNCTIONS
@@ -336,3 +412,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
