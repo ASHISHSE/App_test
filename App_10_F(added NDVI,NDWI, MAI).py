@@ -351,10 +351,10 @@ if generate:
         st.header("📊 Circlewise Data Matrix (NDVI, NDWI, Rainfall Dev, MAI, Indicators)")
         
         # Debug information
-        st.subheader("🔍 Debug Information")
-        st.write(f"**Sowing Date:** {sowing_date}")
-        st.write(f"**Current Date:** {current_date}")
-        st.write(f"**District:** {district}, **Taluka:** {taluka}, **Circle:** {circle}")
+        s#t.subheader("🔍 Debug Information")
+        #st.write(f"**Sowing Date:** {sowing_date}")
+        #st.write(f"**Current Date:** {current_date}")
+        #st.write(f"**District:** {district}, **Taluka:** {taluka}, **Circle:** {circle}")
         
         matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
         
@@ -376,13 +376,13 @@ if generate:
             st.dataframe(matrix_data.style.applymap(color_categories), use_container_width=True)
 
             # Display column information
-            st.subheader("📊 Column Information")
-            st.write(f"Total columns found: {len(matrix_data.columns)}")
-            st.write("Columns:", list(matrix_data.columns))
+            #st.subheader("📊 Column Information")
+            #st.write(f"Total columns found: {len(matrix_data.columns)}")
+            #st.write("Columns:", list(matrix_data.columns))
 
         else:
-            st.error("No Circlewise Data Matrix available for selected range.")
-            st.info("""
+            #st.error("No Circlewise Data Matrix available for selected range.")
+            #st.info("""
             **Troubleshooting tips:**
             1. Check if the selected District, Taluka, and Circle exist in the data
             2. Verify that the dates are within the available data range (2024 months)
@@ -408,4 +408,5 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
