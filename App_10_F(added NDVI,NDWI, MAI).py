@@ -358,7 +358,7 @@ if generate:
         
         matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
         
-       # if not matrix_data.empty:
+        if not matrix_data.empty:
             def color_categories(val):
                 if isinstance(val, str):
                     val_lower = val.lower()
@@ -408,6 +408,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
