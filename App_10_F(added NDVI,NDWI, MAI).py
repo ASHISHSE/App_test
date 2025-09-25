@@ -382,7 +382,7 @@ if generate:
 
         else:
             #st.error("No Circlewise Data Matrix available for selected range.")
-            #st.info("""
+            st.info("""
             **Troubleshooting tips:**
             1. Check if the selected District, Taluka, and Circle exist in the data
             2. Verify that the dates are within the available data range (2024 months)
@@ -408,3 +408,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
