@@ -62,13 +62,35 @@ weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data(
 # LOAD CIRCLEWISE DATA MATRIX
 # -----------------------------
 @st.cache_data
-def load_circlewise_data():
-    url = "https://github.com/ASHISHSE/App_test/raw/main/Circlewise_Data_Matrix_Indicator_2024_v1.xlsx"
-    res = requests.get(url, timeout=10)
-    df = pd.read_excel(BytesIO(res.content))
-    return df
+# Load Circlewise Data Matrix
+circlewise_df = pd.read_excel("Circlewise_Data_Matrix_Indicator_2024_v1.xlsx")
 
-circlewise_df = load_circlewise_data()
+# Function to filter data based on District, Taluka, Circle, and Month Range
+def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
+    df = circlewise_df.copy()
+
+    # Filter by District, Taluka, Circle
+    df = df[(df["District"] == district) & (df["Taluka"] == taluka)]
+    if circle:
+        df = df[df["Circle"] == circle]
+    if df.empty:
+        return pd.DataFrame()
+
+    # Generate list of months between sowing_date and current_date
+    months = pd.date_range(start=sowing_date.replace(day=1),
+                           end=current_date.replace(day=1),
+                           freq='MS').strftime("%B").tolist()
+
+    # Build list of columns to keep
+    selected_cols = ["District", "Taluka", "Circle"]
+    month_patterns = [fr"{month}_2024" for month in months]
+
+    for col in df.columns:
+        if any(month_pattern in col for month_pattern in month_patterns):
+            selected_cols.append(col)
+
+    return df[selected_cols] if len(selected_cols) > 3 else pd.DataFrame()
+
 
 # -----------------------------
 # HELPER FUNCTIONS
@@ -336,3 +358,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
