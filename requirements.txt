@@ -4,6 +4,10 @@ openpyxl==3.1.5
 numpy
 matplotlib
 requests
+plotly
+io
+datetime
+re
 
 
 
