@@ -328,7 +328,7 @@ if generate:
 
             # NDVI/NDWI Trend
             st.subheader("📈 NDVI & NDWI Trend")
-            trend_df = matrix_data.melt(id_vars=["DTENAME", "THENAME", "CIRNAME"],
+            trend_df = matrix_data.melt(id_vars=["District", "Taluka", "Circle"],
                                         var_name="Parameter_Month", value_name="Value")
             trend_df = trend_df[trend_df["Value"].apply(lambda x: isinstance(x, (int, float, np.number)))]
             if not trend_df.empty:
@@ -360,4 +360,5 @@ st.markdown(
     unsafe_allow_html=True
 )
        
+
 
