@@ -69,7 +69,7 @@ def load_circlewise_data():
 circlewise_df = load_circlewise_data()
 
 # -----------------------------
-# HELPER FUNCTIONS
+# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA
 # -----------------------------
 def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     df = circlewise_df.copy()
@@ -83,68 +83,46 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
         return pd.DataFrame()
 
     # Generate list of months between sowing_date and current_date
-    months = pd.date_range(
-        start=sowing_date.replace(day=1),
-        end=current_date.replace(day=1),
-        freq='MS'
-    ).strftime("%B").tolist()
+    # Start from the month of sowing_date, end with the month of current_date
+    start_month = sowing_date.strftime("%B")
+    end_month = current_date.strftime("%B")
+    
+    # Get all months in between (inclusive)
+    months = []
+    current = sowing_date.replace(day=1)
+    end = current_date.replace(day=1)
+    
+    while current <= end:
+        months.append(current.strftime("%B"))
+        # Move to next month
+        if current.month == 12:
+            current = current.replace(year=current.year + 1, month=1)
+        else:
+            current = current.replace(month=current.month + 1)
 
-    # Select relevant columns (District, Taluka, Circle + months)
+    # Remove duplicates while preserving order
+    months = list(dict.fromkeys(months))
+
+    # Select relevant columns (District, Taluka, Circle + monthly data columns)
     selected_cols = ["District", "Taluka", "Circle"]
-    month_patterns = [f"{month}_2024" for month in months]
-
+    
+    # Get all columns that contain any of the target months
     for col in df.columns:
-        if any(month_pattern in col for month_pattern in month_patterns):
-            selected_cols.append(col)
+        # Skip the basic identifier columns we already have
+        if col in ["District", "Taluka", "Circle"]:
+            continue
+            
+        # Check if this column contains any of our target months
+        for month in months:
+            if month.lower() in col.lower() and "2024" in col:
+                selected_cols.append(col)
+                break  # Avoid adding same column multiple times
 
-    return df[selected_cols] if len(selected_cols) > 3 else pd.DataFrame()
+    # Ensure we have some data columns beyond the basic identifiers
+    if len(selected_cols) <= 3:
+        return pd.DataFrame()
 
-# -----------------------------
-# UI - SELECTIONS
-# -----------------------------
-st.markdown("### Select Parameters")
-col1, col2, col3, col4, col5 = st.columns(5)
-
-with col1:
-    district = st.selectbox("Select District", sorted(circlewise_df["District"].unique()))
-with col2:
-    taluka = st.selectbox("Select Taluka", sorted(circlewise_df[circlewise_df["District"] == district]["Taluka"].unique()))
-with col3:
-    circle = st.selectbox("Select Circle", sorted(circlewise_df[(circlewise_df["District"] == district) & (circlewise_df["Taluka"] == taluka)]["Circle"].unique()))
-with col4:
-    sowing_date = st.date_input("Select Sowing Date", value=date(2024, 6, 1), min_value=date(2024, 6, 1), max_value=date(2024, 10, 31))
-with col5:
-    current_date = st.date_input("Select Current Date", value=date.today(), min_value=date(2024, 6, 1), max_value=date(2024, 10, 31))
-
-generate = st.button("Generate Advisory")
-
-# -----------------------------
-# MAIN LOGIC
-# -----------------------------
-if generate:
-    st.markdown("---")
-    st.header("📊 Circlewise Data Matrix (NDVI, NDWI, Rainfall Deviation, MAI)")
-
-    matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
-
-    if not matrix_data.empty:
-        def color_categories(val):
-            if isinstance(val, str):
-                if "Normal" in val:
-                    return 'background-color: #C6F6D5'  # Light Green
-                elif "Deficit" in val:
-                    return 'background-color: #FEEBC8'  # Light Orange
-                elif "Excess" in val:
-                    return 'background-color: #FED7D7'  # Light Red
-                elif "Above" in val:
-                    return 'background-color: #BEE3F8'  # Light Blue
-            return ''
-
-        st.dataframe(matrix_data.style.applymap(color_categories))
-    else:
-        st.warning("No data available for selected filters.")
-
-
+    return df[selected_cols]
 
 # -----------------------------
 # HELPER FUNCTIONS
@@ -364,32 +342,57 @@ if generate:
         st.markdown("---")
         st.header("📊 Circlewise Data Matrix (NDVI, NDWI, Rainfall Dev, MAI, Indicators)")
         matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
+        
         if not matrix_data.empty:
             def color_categories(val):
                 if isinstance(val, str):
-                    if val.lower() == "good":
-                        return "background-color: #b6fcb6"
-                    elif val.lower() == "moderate":
-                        return "background-color: #fff59d"
-                    elif val.lower() == "poor":
-                        return "background-color: #ff9999"
+                    val_lower = val.lower()
+                    if "normal" in val_lower or "good" in val_lower:
+                        return "background-color: #C6F6D5"  # Light Green
+                    elif "deficit" in val_lower or "moderate" in val_lower:
+                        return "background-color: #FEEBC8"  # Light Orange
+                    elif "excess" in val_lower or "poor" in val_lower:
+                        return "background-color: #FED7D7"  # Light Red
+                    elif "above" in val_lower:
+                        return "background-color: #BEE3F8"  # Light Blue
                 return ""
 
             st.dataframe(matrix_data.style.applymap(color_categories), use_container_width=True)
 
-            # NDVI/NDWI Trend
+            # NDVI/NDWI Trend (only for numeric columns)
             st.subheader("📈 NDVI & NDWI Trend")
-            trend_df = matrix_data.melt(id_vars=["District", "Taluka", "Circle"],
-                                        var_name="Parameter_Month", value_name="Value")
-            trend_df = trend_df[trend_df["Value"].apply(lambda x: isinstance(x, (int, float, np.number)))]
-            if not trend_df.empty:
-                trend_df[["Parameter", "Month"]] = trend_df["Parameter_Month"].str.extract(r"(NDVI|NDWI).*([A-Za-z]+)_2024")
-                fig = px.line(trend_df, x="Month", y="Value", color="Parameter",
-                              markers=True, title="NDVI & NDWI Monthly Trend")
-                fig.update_layout(xaxis_title="Month", yaxis_title="Index Value", template="plotly_white")
-                st.plotly_chart(fig, use_container_width=True)
+            
+            # Extract numeric columns for plotting
+            numeric_data = matrix_data.select_dtypes(include=[np.number])
+            if not numeric_data.empty:
+                # Get NDVI and NDWI columns
+                ndvi_cols = [col for col in numeric_data.columns if 'ndvi' in col.lower()]
+                ndwi_cols = [col for col in numeric_data.columns if 'ndwi' in col.lower()]
+                
+                trend_data = []
+                
+                # Process NDVI data
+                for col in ndvi_cols:
+                    month = col.split('_')[1] if '_' in col else 'Unknown'
+                    for value in numeric_data[col]:
+                        trend_data.append({'Parameter': 'NDVI', 'Month': month, 'Value': value})
+                
+                # Process NDWI data
+                for col in ndwi_cols:
+                    month = col.split('_')[1] if '_' in col else 'Unknown'
+                    for value in numeric_data[col]:
+                        trend_data.append({'Parameter': 'NDWI', 'Month': month, 'Value': value})
+                
+                if trend_data:
+                    trend_df = pd.DataFrame(trend_data)
+                    fig = px.line(trend_df, x="Month", y="Value", color="Parameter",
+                                markers=True, title="NDVI & NDWI Monthly Trend")
+                    fig.update_layout(xaxis_title="Month", yaxis_title="Index Value", template="plotly_white")
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("No numeric NDVI/NDWI values found for plotting.")
             else:
-                st.info("No numeric NDVI/NDWI values found for plotting.")
+                st.info("No numeric data available for trend plotting.")
         else:
             st.info("No Circlewise Data Matrix available for selected range.")
 
@@ -412,4 +415,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
