@@ -69,7 +69,7 @@ def load_circlewise_data():
 circlewise_df = load_circlewise_data()
 
 # -----------------------------
-# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA (FIXED BASED ON YOUR IMAGE)
+# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA (CLEAN VERSION - NO DEBUG MESSAGES)
 # -----------------------------
 def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     df = circlewise_df.copy()
@@ -80,7 +80,6 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
         df = df[df["Circle"] == circle]
 
     if df.empty:
-        st.warning(f"No data found for District: {district}, Taluka: {taluka}, Circle: {circle}")
         return pd.DataFrame()
 
     # Generate list of months between sowing_date and current_date
@@ -98,17 +97,12 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
 
     # Remove duplicates while preserving order
     months = list(dict.fromkeys(months))
-    
-    st.info(f"Looking for months: {months}")
 
     # Select relevant columns (District, Taluka, Circle + monthly data columns)
     selected_cols = ["District", "Taluka", "Circle"]
     
     # Get all columns that contain any of the target months
-    all_columns = df.columns.tolist()
-    st.info(f"Available columns: {all_columns[:10]}...")  # Show first 10 columns for debugging
-    
-    for col in all_columns:
+    for col in df.columns:
         col_lower = str(col).lower()
         # Skip the basic identifier columns we already have
         if col in selected_cols:
@@ -119,18 +113,13 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
             month_lower = month.lower()
             if month_lower in col_lower and "2024" in col_lower:
                 selected_cols.append(col)
-                st.success(f"Found matching column: {col} for month: {month}")
                 break  # Avoid adding same column multiple times
 
     # Ensure we have some data columns beyond the basic identifiers
     if len(selected_cols) <= 3:
-        st.warning(f"No monthly data columns found for months: {months}")
-        st.warning(f"Selected columns: {selected_cols}")
         return pd.DataFrame()
 
-    result_df = df[selected_cols]
-    st.success(f"Successfully retrieved data with {len(selected_cols)-3} data columns")
-    return result_df
+    return df[selected_cols]
 
 # -----------------------------
 # HELPER FUNCTIONS
@@ -350,12 +339,6 @@ if generate:
         st.markdown("---")
         st.header("📊 Circlewise Data Matrix (NDVI, NDWI, Rainfall Dev, MAI, Indicators)")
         
-        # Debug information
-        #st.subheader("🔍 Debug Information")
-        #st.write(f"**Sowing Date:** {sowing_date}")
-        #st.write(f"**Current Date:** {current_date}")
-        #st.write(f"**District:** {district}, **Taluka:** {taluka}, **Circle:** {circle}")
-        
         matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
         
         if not matrix_data.empty:
@@ -372,22 +355,10 @@ if generate:
                         return "background-color: #BEE3F8"  # Light Blue
                 return ""
 
-            st.subheader("📋 Data Matrix")
             st.dataframe(matrix_data.style.applymap(color_categories), use_container_width=True)
 
-            # Display column information
-            #st.subheader("📊 Column Information")
-            #st.write(f"Total columns found: {len(matrix_data.columns)}")
-            #st.write("Columns:", list(matrix_data.columns))
-
         else:
-            st.error("No Circlewise Data Matrix available for selected range.")
-            st.info("""
-            **Troubleshooting tips:**
-            1. Check if the selected District, Taluka, and Circle exist in the data
-            2. Verify that the dates are within the available data range (2024 months)
-            3. Ensure the Excel file has data for the selected months
-            """)
+            st.info("No Circlewise Data Matrix available for selected range.")
 
 # -----------------------------
 # FOOTER
@@ -408,11 +379,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-
-
-
-
-
-
-
