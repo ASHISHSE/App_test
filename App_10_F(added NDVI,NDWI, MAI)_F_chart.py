@@ -224,57 +224,107 @@ def get_status_icon(status):
         return '⚪'
 
 # -----------------------------
-# CHART FUNCTIONS
+# NEW CHART FUNCTIONS
 # -----------------------------
-def create_weather_bar_chart(metrics):
-    """Create bar chart for weather parameters"""
-    # Prepare data for bar chart
-    periods = ['Last Week', 'Last Month', 'Since Sowing']
-    rainfall_data = [metrics['rainfall_last_week'], metrics['rainfall_last_month'], metrics['rainfall_das']]
-    rainy_days_data = [metrics['rainy_days_week'], metrics['rainy_days_month'], metrics['rainy_days_das']]
+def create_monthly_weather_chart(weather_data, sowing_date, current_date):
+    """Create column chart for monthly weather parameters"""
+    # Filter data for the relevant period
+    mask = (weather_data['Date_dt'] >= pd.to_datetime(sowing_date)) & (weather_data['Date_dt'] <= pd.to_datetime(current_date))
+    filtered_data = weather_data[mask].copy()
+    
+    if filtered_data.empty:
+        return None
+    
+    # Extract month from date
+    filtered_data['Month'] = filtered_data['Date_dt'].dt.strftime('%B')
+    
+    # Define month order for proper sorting
+    month_order = ['January', 'February', 'March', 'April', 'May', 'June', 
+                  'July', 'August', 'September', 'October', 'November', 'December']
+    filtered_data['Month'] = pd.Categorical(filtered_data['Month'], categories=month_order, ordered=True)
+    
+    # Group by month and calculate averages/sums
+    monthly_stats = filtered_data.groupby('Month').agg({
+        'Rainfall': 'sum',
+        'Tmax': 'mean',
+        'Tmin': 'mean',
+        'max_Rh': 'mean',
+        'min_Rh': 'mean'
+    }).reset_index()
+    
+    # Count rainy days per month
+    filtered_data['Rainy_Day'] = filtered_data['Rainfall'] > 0
+    rainy_days = filtered_data.groupby('Month')['Rainy_Day'].sum().reset_index()
+    monthly_stats = monthly_stats.merge(rainy_days, on='Month')
     
     # Create subplots
     fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=('Rainfall (mm)', 'Rainy Days', 'Temperature Metrics', 'Humidity Metrics'),
+        rows=3, cols=2,
+        subplot_titles=('Monthly Rainfall (mm)', 'Monthly Rainy Days', 
+                       'Monthly Max Temperature (°C)', 'Monthly Min Temperature (°C)',
+                       'Monthly Max RH (%)', 'Monthly Min RH (%)'),
         specs=[[{"secondary_y": False}, {"secondary_y": False}],
-               [{"secondary_y": False}, {"secondary_y": False}]]
+               [{"secondary_y": False}, {"secondary_y": False}],
+               [{"secondary_y": False}, {"secondary_y": False}]],
+        vertical_spacing=0.1
     )
     
-    # Rainfall bar chart
+    # Rainfall
     fig.add_trace(
-        go.Bar(name='Rainfall (mm)', x=periods, y=rainfall_data, marker_color='blue'),
+        go.Bar(name='Rainfall', x=monthly_stats['Month'], y=monthly_stats['Rainfall'], 
+               marker_color='blue', opacity=0.7),
         row=1, col=1
     )
     
-    # Rainy days bar chart
+    # Rainy Days
     fig.add_trace(
-        go.Bar(name='Rainy Days', x=periods, y=rainy_days_data, marker_color='lightblue'),
+        go.Bar(name='Rainy Days', x=monthly_stats['Month'], y=monthly_stats['Rainy_Day'], 
+               marker_color='lightblue', opacity=0.7),
         row=1, col=2
     )
     
-    # Temperature metrics
-    temp_metrics = ['Tmax Avg', 'Tmin Avg']
-    temp_values = [metrics['tmax_avg'] or 0, metrics['tmin_avg'] or 0]
+    # Max Temperature
     fig.add_trace(
-        go.Bar(name='Temperature (°C)', x=temp_metrics, y=temp_values, marker_color='red'),
+        go.Bar(name='Max Temp', x=monthly_stats['Month'], y=monthly_stats['Tmax'], 
+               marker_color='red', opacity=0.7),
         row=2, col=1
     )
     
-    # Humidity metrics
-    humidity_metrics = ['Max RH Avg', 'Min RH Avg']
-    humidity_values = [metrics['max_rh_avg'] or 0, metrics['min_rh_avg'] or 0]
+    # Min Temperature
     fig.add_trace(
-        go.Bar(name='Humidity (%)', x=humidity_metrics, y=humidity_values, marker_color='green'),
+        go.Bar(name='Min Temp', x=monthly_stats['Month'], y=monthly_stats['Tmin'], 
+               marker_color='orange', opacity=0.7),
         row=2, col=2
     )
     
+    # Max RH
+    fig.add_trace(
+        go.Bar(name='Max RH', x=monthly_stats['Month'], y=monthly_stats['max_Rh'], 
+               marker_color='green', opacity=0.7),
+        row=3, col=1
+    )
+    
+    # Min RH
+    fig.add_trace(
+        go.Bar(name='Min RH', x=monthly_stats['Month'], y=monthly_stats['min_Rh'], 
+               marker_color='lightgreen', opacity=0.7),
+        row=3, col=2
+    )
+    
     fig.update_layout(
-        title="Weather Parameters Analysis",
-        height=600,
+        title="Monthly Weather Parameters Analysis",
+        height=800,
         showlegend=False,
         template="plotly_white"
     )
+    
+    # Update y-axis labels
+    fig.update_yaxes(title_text="Rainfall (mm)", row=1, col=1)
+    fig.update_yaxes(title_text="Number of Days", row=1, col=2)
+    fig.update_yaxes(title_text="Temperature (°C)", row=2, col=1)
+    fig.update_yaxes(title_text="Temperature (°C)", row=2, col=2)
+    fig.update_yaxes(title_text="Humidity (%)", row=3, col=1)
+    fig.update_yaxes(title_text="Humidity (%)", row=3, col=2)
     
     return fig
 
@@ -595,10 +645,13 @@ if generate:
                 with tab2:
                     st.subheader("Data Matrix & Visual Analysis")
                     
-                    # Weather Parameters Bar Chart
-                    st.markdown("### 🌤️ Weather Parameters Analysis")
-                    weather_chart = create_weather_bar_chart(metrics)
-                    st.plotly_chart(weather_chart, use_container_width=True)
+                    # Weather Parameters Column Chart
+                    st.markdown("### 🌤️ Monthly Weather Parameters")
+                    weather_chart = create_monthly_weather_chart(weather_df, sowing_date, current_date)
+                    if weather_chart:
+                        st.plotly_chart(weather_chart, use_container_width=True)
+                    else:
+                        st.info("No sufficient data available for monthly weather chart.")
                     
                     # Indices Line Chart
                     st.markdown("### 📈 Monthly Indices Trend")
@@ -669,35 +722,4 @@ if generate:
                 st.dataframe(matrix_data, use_container_width=True)
                 
         else:
-            st.info("""
-            ## 📊 No Data Available
-            
-            The Monthly Crop Health Analysis is not available for the selected parameters. 
-            This could be due to:
-            
-            - **Data availability**: The selected area might not have satellite data coverage
-            - **Date range**: The selected dates might be outside the data collection period
-            - **Technical reasons**: Temporary unavailability of remote sensing data
-            
-            Please try adjusting your selection or check back later.
-            """)
-
-# -----------------------------
-# FOOTER
-# -----------------------------
-st.markdown(
-    """
-    <div style='text-align: center; font-size: 16px; margin-top: 20px;'>
-        💻 <b>Developed by:</b> Ashish Selokar <br>
-        📧 For suggestions or queries, please email at:
-        <a href="mailto:ashish111.selokar@gmail.com">ashish111.selokar@gmail.com</a> <br><br>
-        <span style="font-size:15px; color:green;">
-            🌾 Empowering Farmers with Data-Driven Insights 🌾
-        </span><br>
-        <span style="font-size:13px; color:gray;">
-            Version 1.0 | Powered by Agricose | Last Updated: Sept 2025
-        </span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+           
