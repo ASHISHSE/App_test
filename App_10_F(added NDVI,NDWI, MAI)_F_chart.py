@@ -5,7 +5,6 @@ import re
 from datetime import datetime, date, timedelta
 import requests
 from io import BytesIO
-import plotly.express as px
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", layout="wide")
@@ -165,14 +164,19 @@ def create_single_index_chart(monthly_df, index_col, index_name, line_color):
 def create_indicator_bar_chart(monthly_df):
     if monthly_df is None or monthly_df.empty:
         return None
+    # Filter only Good, Moderate, Poor
+    monthly_df = monthly_df.copy()
+    for col in ["Indicator_1", "Indicator_2", "Indicator_3"]:
+        monthly_df[col] = monthly_df[col].apply(lambda x: x if str(x).strip().lower() in ["good","moderate","poor"] else None)
     monthly_df['Month_Num'] = monthly_df['Month'].apply(lambda x: datetime.strptime(x, '%B').month)
     monthly_df = monthly_df.sort_values('Month_Num')
+
     fig = go.Figure()
     fig.add_trace(go.Bar(x=monthly_df['Month'], y=monthly_df['Indicator_1'], name='Indicator-1'))
     fig.add_trace(go.Bar(x=monthly_df['Month'], y=monthly_df['Indicator_2'], name='Indicator-2'))
     fig.add_trace(go.Bar(x=monthly_df['Month'], y=monthly_df['Indicator_3'], name='Indicator-3'))
-    fig.update_layout(barmode='group', title="Monthly Indicators (1, 2, 3)",
-                      xaxis_title="Month", yaxis_title="Indicator Values")
+    fig.update_layout(barmode='group', title="Monthly Indicators (Good, Moderate, Poor)",
+                      xaxis_title="Month", yaxis_title="Category")
     return fig
 
 # -----------------------------
@@ -199,6 +203,8 @@ if generate:
         tab1, tab2 = st.tabs(["📊 Data Matrix", "📈 Monthly Trends"])
         with tab1:
             st.dataframe(matrix_data, use_container_width=True)
+            csv_data = matrix_data.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Download Data Matrix (CSV)", csv_data, file_name="data_matrix.csv")
         with tab2:
             if monthly_df is not None and not monthly_df.empty:
                 st.subheader("📈 Monthly Trends (NDVI, NDWI, MAI)")
@@ -209,9 +215,12 @@ if generate:
                 mai_chart = create_single_index_chart(monthly_df, "MAI_Value", "MAI", "orange")
                 if mai_chart: st.plotly_chart(mai_chart, use_container_width=True)
 
-                st.subheader("📊 Monthly Indicator Comparison")
+                st.subheader("📊 Monthly Indicator Comparison (Good / Moderate / Poor)")
                 indicator_chart = create_indicator_bar_chart(monthly_df)
                 if indicator_chart: st.plotly_chart(indicator_chart, use_container_width=True)
+
+                csv_monthly = monthly_df.to_csv(index=False).encode("utf-8")
+                st.download_button("⬇️ Download Monthly Analysis (CSV)", csv_monthly, file_name="monthly_analysis.csv")
             else:
                 st.info("No monthly data available.")
     else:
