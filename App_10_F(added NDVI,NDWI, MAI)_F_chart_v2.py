@@ -626,9 +626,24 @@ st.markdown(
 col1, col2, col3 = st.columns(3)
 with col1:
     district = st.selectbox("District *", [""] + districts)
-    taluka_options = [""] + sorted(weather_df[weather_df["District"] == district]["Taluka"].dropna().unique().tolist()) if district else talukas
+    
+    # Fix for taluka dropdown - get talukas from sowing_df instead of weather_df
+    if district:
+        # Get talukas from sowing_df for the selected district
+        taluka_options = [""] + sorted(sowing_df[sowing_df["District"] == district]["Taluka"].dropna().unique().tolist())
+    else:
+        taluka_options = [""] + talukas
+        
     taluka = st.selectbox("Taluka", taluka_options)
-    circle_options = [""] + sorted(weather_df[weather_df["Taluka"] == taluka]["Circle"].dropna().unique().tolist()) if taluka else circles
+    
+    # Fix for circle dropdown - get circles from sowing_df instead of weather_df
+    if district and taluka:
+        # Get circles from sowing_df for the selected district and taluka
+        circle_options = [""] + sorted(sowing_df[(sowing_df["District"] == district) & 
+                                               (sowing_df["Taluka"] == taluka)]["Circle"].dropna().unique().tolist())
+    else:
+        circle_options = [""] + circles
+        
     circle = st.selectbox("Circle", circle_options)
 
 with col2:
@@ -955,6 +970,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
