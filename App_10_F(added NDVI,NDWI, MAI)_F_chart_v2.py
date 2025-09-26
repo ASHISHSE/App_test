@@ -16,8 +16,7 @@ st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", lay
 # -----------------------------
 @st.cache_data
 def load_data():
-    # Changed weather file to weather_data_F_upload_F.xlsb
-    weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather_data_F_upload_F.xlsb"
+    weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather.xlsx"
     rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules.xlsx"
     sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar1.xlsx"
 
@@ -25,8 +24,7 @@ def load_data():
     rres = requests.get(rules_url, timeout=10)
     sres = requests.get(sowing_url, timeout=10)
 
-    # Read weather data from .xlsb file
-    weather_df = pd.read_excel(BytesIO(wres.content), engine='pyxlsb')
+    weather_df = pd.read_excel(BytesIO(wres.content))
     rules_df = pd.read_excel(BytesIO(rres.content))
     sowing_df = pd.read_excel(BytesIO(sres.content))
 
@@ -37,7 +35,7 @@ def load_data():
             date_col = candidate
             break
     if date_col is None:
-        raise ValueError("weather_data_F_upload_F.xlsb must have a column named 'Date(DD-MM-YYYY)' or similar")
+        raise ValueError("weather.xlsx must have a column named 'Date(DD-MM-YYYY)' or similar")
 
     weather_df["Date_dt"] = pd.to_datetime(weather_df[date_col], format="%d-%m-%Y", errors="coerce")
     weather_df = weather_df.dropna(subset=["Date_dt"]).copy()
@@ -65,9 +63,11 @@ weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data(
 # -----------------------------
 # LOAD CIRCLEWISE DATA MATRIX
 # -----------------------------
+# -----------------------------
+# LOAD CIRCLEWISE DATA MATRIX
+# -----------------------------
 @st.cache_data
 def load_circlewise_data():
-    # Changed to Circlewise_Data_Matrix_Indicator_2024_F_upload.xlsx
     url = "https://github.com/ASHISHSE/App_test/raw/main/Circlewise_Data_Matrix_Indicator_2024_F_upload.xlsx"
     return pd.read_excel(url)
 
@@ -87,84 +87,61 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     if df.empty:
         return pd.DataFrame()
 
-    # Generate list of months between sowing_date and current_date
-    months = []
-    current = sowing_date.replace(day=1)
-    end = current_date.replace(day=1)
-    
-    while current <= end:
-        months.append(current.strftime("%B"))
-        # Move to next month
-        if current.month == 12:
-            current = current.replace(year=current.year + 1, month=1)
-        else:
-            current = current.replace(month=current.month + 1)
+    # Filter Year based on sowing date & current date
+    sowing_year = sowing_date.year
+    current_year = current_date.year
+    df = df[df["Year"].between(sowing_year, current_year)]
 
-    # Remove duplicates while preserving order
-    months = list(dict.fromkeys(months))
+    # Filter Months between sowing_date and current_date
+    months_list = pd.date_range(sowing_date, current_date, freq='MS').strftime("%B").tolist()
+    df = df[df["Month"].isin(months_list)]
 
-    # Select relevant columns (District, Taluka, Circle + monthly data columns)
-    selected_cols = ["District", "Taluka", "Circle"]
-    
-    # Get all columns that contain any of the target months
-    for col in df.columns:
-        col_lower = str(col).lower()
-        # Skip the basic identifier columns we already have
-        if col in selected_cols:
-            continue
-            
-        # Check if this column contains any of our target months
-        for month in months:
-            month_lower = month.lower()
-            if month_lower in col_lower and "2024" in col_lower:
-                selected_cols.append(col)
-                break  # Avoid adding same column multiple times
-
-    # Ensure we have some data columns beyond the basic identifiers
-    if len(selected_cols) <= 3:
-        return pd.DataFrame()
-
-    return df[selected_cols]
+    return df
 
 # -----------------------------
-# IMPROVED FUNCTION FOR MONTHLY ANALYSIS WITH CORRECT COLUMN DETECTION
+# IMPROVED FUNCTION FOR MONTHLY ANALYSIS WITH ROW-WISE FORMAT
 # -----------------------------
 def create_monthly_analysis(matrix_data):
-    """Create detailed monthly analysis with index values and categories"""
     if matrix_data.empty:
         return None
-    
+
     monthly_data = []
-    
-    # Extract unique months from column names based on the specified format
-    months = set()
-    for col in matrix_data.columns:
-        col_str = str(col)
-        # Look for month names in the column names
-        for month in ['January', 'February', 'March', 'April', 'May', 'June', 
-                     'July', 'August', 'September', 'October', 'November', 'December']:
-            if month.lower() in col_str.lower():
-                months.add(month)
-                break
-    
-    months = sorted(months, key=lambda x: datetime.strptime(x, "%B"))
-    
-    for month in months:
-        month_data = {
-            'Month': month,
-            'NDVI_Value': None,
-            'NDVI_Category': None,
-            'NDWI_Value': None,
-            'NDWI_Category': None,
-            'Rainfall_Dev_Value': None,
-            'Rainfall_Dev_Category': None,
-            'MAI_Value': None,
-            'MAI_Category': None,
-            'Indicator_1': None,
-            'Indicator_2': None,
-            'Indicator_3': None
-        }
-        
+    for _, row in matrix_data.iterrows():
+        monthly_data.append({
+            'Month': row['Month'],
+            'NDVI_Value': row.get('NDVI'),
+            'NDVI_Category': row.get('NDVI_CAT'),
+            'NDWI_Value': row.get('NDWI'),
+            'NDWI_Category': row.get('NDWI_CAT'),
+            'Rainfall_Dev_Value': row.get('RAINFALL_DEV'),
+            'Rainfall_Dev_Category': row.get('RAINFALL_DEV'),  # keep as category if available
+            'MAI_Value': row.get('MAI'),
+            'MAI_Category': row.get('MAI_CAT'),
+            'Indicator_1': row.get('Indicator-1 NDVI/NDWI'),
+            'Indicator_2': row.get('Indicator-2 RAINFALL/MAI'),
+            'Indicator_3': row.get('Indicator-3 NDVI_NDWI/RAINFALL_MAI')
+        })
+
+    return pd.DataFrame(monthly_data)
+
+# -----------------------------
+# COMBINED INDICATOR FUNCTION (ROW-WISE)
+# -----------------------------
+def get_combined_indicators(matrix_data):
+    if matrix_data.empty:
+        return pd.DataFrame()
+
+    indicators_data = []
+    for _, row in matrix_data.iterrows():
+        indicators_data.append({
+            'Month': row['Month'],
+            'Indicator_1': row.get('Indicator-1 NDVI/NDWI'),
+            'Indicator_2': row.get('Indicator-2 RAINFALL/MAI'),
+            'Indicator_3': row.get('Indicator-3 NDVI_NDWI/RAINFALL_MAI')
+        })
+
+    return pd.DataFrame(indicators_data)
+
         # Extract values for each parameter with improved pattern matching
         for col in matrix_data.columns:
             col_str = str(col)
@@ -626,24 +603,9 @@ st.markdown(
 col1, col2, col3 = st.columns(3)
 with col1:
     district = st.selectbox("District *", [""] + districts)
-    
-    # Fix for taluka dropdown - get talukas from sowing_df instead of weather_df
-    if district:
-        # Get talukas from sowing_df for the selected district
-        taluka_options = [""] + sorted(sowing_df[sowing_df["District"] == district]["Taluka"].dropna().unique().tolist())
-    else:
-        taluka_options = [""] + talukas
-        
+    taluka_options = [""] + sorted(weather_df[weather_df["District"] == district]["Taluka"].dropna().unique().tolist()) if district else talukas
     taluka = st.selectbox("Taluka", taluka_options)
-    
-    # Fix for circle dropdown - get circles from sowing_df instead of weather_df
-    if district and taluka:
-        # Get circles from sowing_df for the selected district and taluka
-        circle_options = [""] + sorted(sowing_df[(sowing_df["District"] == district) & 
-                                               (sowing_df["Taluka"] == taluka)]["Circle"].dropna().unique().tolist())
-    else:
-        circle_options = [""] + circles
-        
+    circle_options = [""] + sorted(weather_df[weather_df["Taluka"] == taluka]["Circle"].dropna().unique().tolist()) if taluka else circles
     circle = st.selectbox("Circle", circle_options)
 
 with col2:
