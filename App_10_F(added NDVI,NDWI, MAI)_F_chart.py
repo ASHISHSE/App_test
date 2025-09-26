@@ -16,7 +16,7 @@ st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", lay
 # -----------------------------
 @st.cache_data
 def load_data():
-    weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather_data_F_upload_F.xlsb"
+    weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather.xlsx"
     rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules.xlsx"
     sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar1.xlsx"
 
@@ -124,7 +124,7 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     return df[selected_cols]
 
 # -----------------------------
-# NEW FUNCTION FOR MONTHLY ANALYSIS
+# IMPROVED FUNCTION FOR MONTHLY ANALYSIS WITH CORRECT COLUMN DETECTION
 # -----------------------------
 def create_monthly_analysis(matrix_data):
     """Create detailed monthly analysis with index values and categories"""
@@ -133,16 +133,16 @@ def create_monthly_analysis(matrix_data):
     
     monthly_data = []
     
-    # Extract months from column names
+    # Extract unique months from column names based on the specified format
     months = set()
     for col in matrix_data.columns:
-        if '_' in col and any(month in col for month in ['January', 'February', 'March', 'April', 'May', 'June', 
-                                                       'July', 'August', 'September', 'October', 'November', 'December']):
-            for month in ['January', 'February', 'March', 'April', 'May', 'June', 
-                         'July', 'August', 'September', 'October', 'November', 'December']:
-                if month in col:
-                    months.add(month)
-                    break
+        col_str = str(col)
+        # Look for month names in the column names
+        for month in ['January', 'February', 'March', 'April', 'May', 'June', 
+                     'July', 'August', 'September', 'October', 'November', 'December']:
+            if month.lower() in col_str.lower():
+                months.add(month)
+                break
     
     months = sorted(months, key=lambda x: datetime.strptime(x, "%B"))
     
@@ -162,29 +162,52 @@ def create_monthly_analysis(matrix_data):
             'Indicator_3': None
         }
         
-        # Extract values for each parameter
+        # Extract values for each parameter with improved pattern matching
         for col in matrix_data.columns:
-            col_lower = col.lower()
-            if month.lower() in col_lower:
+            col_str = str(col)
+            col_lower = col_str.lower()
+            month_lower = month.lower()
+            
+            # Check if this column belongs to the current month
+            if month_lower in col_lower and '2024' in col_str:
+                
                 value = matrix_data[col].iloc[0] if not matrix_data[col].empty else None
                 
+                # NDVI values and categories
                 if 'ndvi' in col_lower and 'cat' not in col_lower and 'indicator' not in col_lower:
                     month_data['NDVI_Value'] = value
                 elif 'ndvi' in col_lower and 'cat' in col_lower:
                     month_data['NDVI_Category'] = value
+                
+                # NDWI values and categories
                 elif 'ndwi' in col_lower and 'cat' not in col_lower and 'indicator' not in col_lower:
                     month_data['NDWI_Value'] = value
                 elif 'ndwi' in col_lower and 'cat' in col_lower:
                     month_data['NDWI_Category'] = value
+                
+                # Rainfall Deviation values and categories
                 elif 'rainfall_dev' in col_lower and 'cat' not in col_lower:
                     month_data['Rainfall_Dev_Value'] = value
                 elif 'rainfall_dev' in col_lower and 'cat' in col_lower:
                     month_data['Rainfall_Dev_Category'] = value
+                
+                # MAI values and categories
                 elif 'mai' in col_lower and 'cat' not in col_lower:
                     month_data['MAI_Value'] = value
                 elif 'mai' in col_lower and 'cat' in col_lower:
                     month_data['MAI_Category'] = value
-                elif 'indicator-1' in col_lower or 'indicator-1' in col_lower:
+        
+        # Extract indicator values (they have different naming pattern)
+        for col in matrix_data.columns:
+            col_str = str(col)
+            col_lower = col_str.lower()
+            month_lower = month.lower()
+            
+            # Indicators have format like "Indicator-1 NDVI/NDWI_January"
+            if 'indicator' in col_lower and month_lower in col_lower:
+                value = matrix_data[col].iloc[0] if not matrix_data[col].empty else None
+                
+                if 'indicator-1' in col_lower or 'indicator-1' in col_lower:
                     month_data['Indicator_1'] = value
                 elif 'indicator-2' in col_lower or 'indicator-2' in col_lower:
                     month_data['Indicator_2'] = value
@@ -224,10 +247,46 @@ def get_status_icon(status):
         return '⚪'
 
 # -----------------------------
+# IMPROVED DATA MATRIX PROCESSING FOR COMBINED INDICATOR TAB
+# -----------------------------
+def get_combined_indicators(matrix_data):
+    """Extract combined indicators (Good, Moderate, Poor) for all months with correct column detection"""
+    if matrix_data.empty:
+        return pd.DataFrame()
+    
+    indicators_data = []
+    months = ['January', 'February', 'March', 'April', 'May', 'June', 
+              'July', 'August', 'September', 'October', 'November', 'December']
+    
+    for month in months:
+        month_data = {'Month': month, 'Indicator_1': None, 'Indicator_2': None, 'Indicator_3': None}
+        
+        # Extract indicator values for the month with improved pattern matching
+        for col in matrix_data.columns:
+            col_str = str(col)
+            col_lower = col_str.lower()
+            month_lower = month.lower()
+            
+            # Look for indicators with the month name
+            if 'indicator' in col_lower and month_lower in col_lower:
+                value = matrix_data[col].iloc[0] if not matrix_data[col].empty else None
+                
+                if 'indicator-1' in col_lower or 'indicator-1' in col_lower:
+                    month_data['Indicator_1'] = value
+                elif 'indicator-2' in col_lower or 'indicator-2' in col_lower:
+                    month_data['Indicator_2'] = value
+                elif 'indicator-3' in col_lower or 'indicator-3' in col_lower:
+                    month_data['Indicator_3'] = value
+        
+        indicators_data.append(month_data)
+    
+    return pd.DataFrame(indicators_data)
+
+# -----------------------------
 # CHART FUNCTIONS FOR DATA CHARTS TAB
 # -----------------------------
 def create_weather_parameters_charts(monthly_df):
-    """Create column charts for weather parameters (Rainfall, Rainy Days, Tmax, Tmin, Max RH, Min RH)"""
+    """Create column charts for weather parameters"""
     if monthly_df is None or monthly_df.empty:
         return None
     
@@ -238,64 +297,79 @@ def create_weather_parameters_charts(monthly_df):
     # Create subplots for weather parameters
     fig = make_subplots(
         rows=3, cols=2,
-        subplot_titles=('Rainfall', 'Rainy Days', 'Maximum Temperature', 'Minimum Temperature', 
-                       'Maximum Relative Humidity', 'Minimum Relative Humidity'),
-        vertical_spacing=0.1,
+        subplot_titles=('Rainfall Deviation (%)', 'MAI Index', 'NDVI Index', 'NDWI Index', 
+                       'Vegetation Health', 'Water Content'),
+        vertical_spacing=0.15,
         horizontal_spacing=0.1
     )
     
-    # Rainfall (assuming we have rainfall data in monthly_df)
-    if 'Rainfall_Value' in monthly_df.columns:
+    # Rainfall Deviation
+    if any(pd.notna(monthly_df['Rainfall_Dev_Value'])):
         fig.add_trace(
-            go.Bar(name='Rainfall', x=monthly_df['Month'], y=monthly_df['Rainfall_Value'], 
+            go.Bar(name='Rainfall Deviation', x=monthly_df['Month'], y=monthly_df['Rainfall_Dev_Value'], 
                    marker_color='blue'),
             row=1, col=1
         )
     
-    # Rainy Days (assuming we have rainy days data)
-    if 'Rainy_Days_Value' in monthly_df.columns:
+    # MAI Index
+    if any(pd.notna(monthly_df['MAI_Value'])):
         fig.add_trace(
-            go.Bar(name='Rainy Days', x=monthly_df['Month'], y=monthly_df['Rainy_Days_Value'],
+            go.Bar(name='MAI', x=monthly_df['Month'], y=monthly_df['MAI_Value'],
                    marker_color='lightblue'),
             row=1, col=2
         )
     
-    # Temperature data (placeholder - you'll need to add actual temperature data)
-    # For now, using NDVI/NDWI values as placeholders
+    # NDVI Index
     if any(pd.notna(monthly_df['NDVI_Value'])):
         fig.add_trace(
-            go.Bar(name='Tmax', x=monthly_df['Month'], y=monthly_df['NDVI_Value']*30,  # Placeholder scaling
-                   marker_color='red'),
+            go.Bar(name='NDVI', x=monthly_df['Month'], y=monthly_df['NDVI_Value'],
+                   marker_color='green'),
             row=2, col=1
         )
     
+    # NDWI Index
     if any(pd.notna(monthly_df['NDWI_Value'])):
         fig.add_trace(
-            go.Bar(name='Tmin', x=monthly_df['Month'], y=monthly_df['NDWI_Value']*25,  # Placeholder scaling
+            go.Bar(name='NDWI', x=monthly_df['Month'], y=monthly_df['NDWI_Value'],
                    marker_color='orange'),
             row=2, col=2
         )
     
-    # Humidity data (placeholder)
-    if any(pd.notna(monthly_df['MAI_Value'])):
+    # Vegetation Health (NDVI Category as numeric for visualization)
+    if any(pd.notna(monthly_df['NDVI_Category'])):
+        # Convert categories to numeric values for visualization
+        category_map = {'Good': 3, 'Moderate': 2, 'Poor': 1, 'Very Poor': 0}
+        veg_health = monthly_df['NDVI_Category'].map(category_map)
         fig.add_trace(
-            go.Bar(name='Max RH', x=monthly_df['Month'], y=monthly_df['MAI_Value']*80,  # Placeholder scaling
-                   marker_color='green'),
+            go.Bar(name='Vegetation Health', x=monthly_df['Month'], y=veg_health,
+                   marker_color='darkgreen'),
             row=3, col=1
         )
-        
+        fig.update_yaxes(title_text="Health Score (3=Good, 0=Poor)", row=3, col=1)
+    
+    # Water Content (NDWI Category as numeric for visualization)
+    if any(pd.notna(monthly_df['NDWI_Category'])):
+        category_map = {'Good': 3, 'Moderate': 2, 'Poor': 1, 'Very Poor': 0}
+        water_content = monthly_df['NDWI_Category'].map(category_map)
         fig.add_trace(
-            go.Bar(name='Min RH', x=monthly_df['Month'], y=monthly_df['MAI_Value']*60,  # Placeholder scaling
-                   marker_color='lightgreen'),
+            go.Bar(name='Water Content', x=monthly_df['Month'], y=water_content,
+                   marker_color='darkblue'),
             row=3, col=2
         )
+        fig.update_yaxes(title_text="Water Score (3=Good, 0=Poor)", row=3, col=2)
     
     fig.update_layout(
-        title="Monthly Weather Parameters Analysis",
-        height=800,
+        title="Monthly Parameters Analysis",
+        height=900,
         showlegend=False,
         template="plotly_white"
     )
+    
+    # Update y-axis titles
+    fig.update_yaxes(title_text="Deviation %", row=1, col=1)
+    fig.update_yaxes(title_text="MAI Value", row=1, col=2)
+    fig.update_yaxes(title_text="NDVI Value", row=2, col=1)
+    fig.update_yaxes(title_text="NDWI Value", row=2, col=2)
     
     return fig
 
@@ -360,22 +434,35 @@ def create_mai_rainfall_chart(monthly_df):
             name='MAI',
             x=monthly_df['Month'],
             y=monthly_df['MAI_Value'],
-            marker_color='orange'
+            marker_color='orange',
+            yaxis='y'
         ))
     
-    # Add Rainfall Deviation bars
+    # Add Rainfall Deviation bars on secondary axis if values are very different
     if any(pd.notna(monthly_df['Rainfall_Dev_Value'])):
         fig.add_trace(go.Bar(
             name='Rainfall Deviation (%)',
             x=monthly_df['Month'],
             y=monthly_df['Rainfall_Dev_Value'],
-            marker_color='purple'
+            marker_color='purple',
+            yaxis='y2'
         ))
+        
+        # Add secondary y-axis for Rainfall Deviation
+        fig.update_layout(
+            yaxis2=dict(
+                title='Rainfall Deviation (%)',
+                overlaying='y',
+                side='right'
+            )
+        )
+    else:
+        # If no rainfall deviation data, use single y-axis
+        fig.update_layout(yaxis_title="Value")
     
     fig.update_layout(
         title="Monthly MAI & Rainfall Deviation Analysis",
         xaxis_title="Month",
-        yaxis_title="Value",
         barmode='group',
         height=400,
         template="plotly_white"
@@ -384,36 +471,27 @@ def create_mai_rainfall_chart(monthly_df):
     return fig
 
 # -----------------------------
-# DATA MATRIX PROCESSING FOR COMBINED INDICATOR TAB
+# DEBUG FUNCTION TO SHOW COLUMN NAMES
 # -----------------------------
-def get_combined_indicators(matrix_data):
-    """Extract combined indicators (Good, Moderate, Poor) for all months"""
+def debug_column_names(matrix_data):
+    """Debug function to show available column names"""
     if matrix_data.empty:
-        return pd.DataFrame()
+        return "No data available"
     
-    indicators_data = []
-    months = ['January', 'February', 'March', 'April', 'May', 'June', 
-              'July', 'August', 'September', 'October', 'November', 'December']
+    columns_info = []
+    for col in matrix_data.columns:
+        col_str = str(col)
+        columns_info.append({
+            'Column Name': col_str,
+            'Has NDVI': 'NDVI' in col_str.upper(),
+            'Has NDWI': 'NDWI' in col_str.upper(),
+            'Has MAI': 'MAI' in col_str.upper(),
+            'Has Rainfall': 'RAINFALL' in col_str.upper(),
+            'Has Indicator': 'INDICATOR' in col_str.upper(),
+            'Has Category': 'CAT' in col_str.upper()
+        })
     
-    for month in months:
-        month_data = {'Month': month}
-        
-        # Extract indicator values for the month
-        for col in matrix_data.columns:
-            col_lower = str(col).lower()
-            if month.lower() in col_lower:
-                value = matrix_data[col].iloc[0] if not matrix_data[col].empty else None
-                
-                if 'indicator-1' in col_lower or 'indicator-1' in col_lower:
-                    month_data['Indicator_1'] = value
-                elif 'indicator-2' in col_lower or 'indicator-2' in col_lower:
-                    month_data['Indicator_2'] = value
-                elif 'indicator-3' in col_lower or 'indicator-3' in col_lower:
-                    month_data['Indicator_3'] = value
-        
-        indicators_data.append(month_data)
-    
-    return pd.DataFrame(indicators_data)
+    return pd.DataFrame(columns_info)
 
 # -----------------------------
 # OTHER HELPER FUNCTIONS
@@ -638,7 +716,18 @@ if generate:
         with tab2:
             st.header("📊 Data Charts - Monthly Analysis")
             
+            if not matrix_data.empty:
+                # Debug information (collapsible)
+                with st.expander("🔍 Debug: View Column Names Structure"):
+                    st.write("This section shows how the system is interpreting your data columns:")
+                    debug_df = debug_column_names(matrix_data)
+                    st.dataframe(debug_df, use_container_width=True)
+            
             if monthly_df is not None and not monthly_df.empty:
+                # Display the monthly data for verification
+                st.subheader("📋 Detected Monthly Data")
+                st.dataframe(monthly_df, use_container_width=True)
+                
                 # Weather Parameters Column Charts
                 st.subheader("🌤️ Weather Parameters - Monthly Column Charts")
                 weather_chart = create_weather_parameters_charts(monthly_df)
@@ -664,6 +753,9 @@ if generate:
                     st.info("MAI and Rainfall Deviation data not available.")
             else:
                 st.info("No monthly analysis data available for the selected parameters.")
+                if not matrix_data.empty:
+                    st.write("Available columns in your data:")
+                    st.write(list(matrix_data.columns))
         
         # TAB 3: COMBINED INDICATOR
         with tab3:
@@ -676,57 +768,64 @@ if generate:
                 if not indicators_df.empty:
                     st.subheader("Monthly Indicator Status")
                     
+                    # Display the indicators data for verification
+                    st.write("Detected Indicator Values:")
+                    st.dataframe(indicators_df, use_container_width=True)
+                    
                     # Create a styled table for indicators
                     display_data = []
                     for _, row in indicators_df.iterrows():
-                        display_data.append({
-                            'Month': row['Month'],
-                            'Indicator-1 (NDVI/NDWI)': f"{get_status_icon(row.get('Indicator_1', ''))} {row.get('Indicator_1', 'N/A')}",
-                            'Indicator-2 (Rainfall/MAI)': f"{get_status_icon(row.get('Indicator_2', ''))} {row.get('Indicator_2', 'N/A')}",
-                            'Indicator-3 (Composite)': f"{get_status_icon(row.get('Indicator_3', ''))} {row.get('Indicator_3', 'N/A')}"
-                        })
+                        if pd.notna(row.get('Indicator_1')) or pd.notna(row.get('Indicator_2')) or pd.notna(row.get('Indicator_3')):
+                            display_data.append({
+                                'Month': row['Month'],
+                                'Indicator-1 (NDVI/NDWI)': f"{get_status_icon(row.get('Indicator_1', ''))} {row.get('Indicator_1', 'N/A')}",
+                                'Indicator-2 (Rainfall/MAI)': f"{get_status_icon(row.get('Indicator_2', ''))} {row.get('Indicator_2', 'N/A')}",
+                                'Indicator-3 (Composite)': f"{get_status_icon(row.get('Indicator_3', ''))} {row.get('Indicator_3', 'N/A')}"
+                            })
                     
-                    indicators_display_df = pd.DataFrame(display_data)
-                    
-                    # Apply styling based on status
-                    def style_indicators(val):
-                        if pd.isna(val):
+                    if display_data:
+                        indicators_display_df = pd.DataFrame(display_data)
+                        
+                        # Apply styling based on status
+                        def style_indicators(val):
+                            if pd.isna(val):
+                                return ''
+                            val_str = str(val).lower()
+                            if any(word in val_str for word in ['good', 'normal', 'above']):
+                                return 'background-color: #d4edda; color: #155724;'
+                            elif any(word in val_str for word in ['moderate', 'average']):
+                                return 'background-color: #fff3cd; color: #856404;'
+                            elif any(word in val_str for word in ['poor', 'deficit', 'below']):
+                                return 'background-color: #f8d7da; color: #721c24;'
                             return ''
-                        if any(word in str(val).lower() for word in ['good', 'normal', 'above']):
-                            return 'background-color: #d4edda; color: #155724;'
-                        elif any(word in str(val).lower() for word in ['moderate', 'average']):
-                            return 'background-color: #fff3cd; color: #856404;'
-                        elif any(word in str(val).lower() for word in ['poor', 'deficit', 'below']):
-                            return 'background-color: #f8d7da; color: #721c24;'
-                        return ''
-                    
-                    styled_df = indicators_display_df.style.applymap(
-                        lambda x: style_indicators(x) if any(indicator in str(x) for indicator in ['Indicator-1', 'Indicator-2', 'Indicator-3']) else ''
-                    )
-                    
-                    st.dataframe(styled_df, use_container_width=True)
-                    
-                    # Summary statistics
-                    st.subheader("Indicator Summary")
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        good_count = indicators_display_df.applymap(
-                            lambda x: 'good' in str(x).lower() if pd.notna(x) else False
-                        ).sum().sum()
-                        st.metric("Good Indicators", good_count)
-                    
-                    with col2:
-                        moderate_count = indicators_display_df.applymap(
-                            lambda x: 'moderate' in str(x).lower() if pd.notna(x) else False
-                        ).sum().sum()
-                        st.metric("Moderate Indicators", moderate_count)
-                    
-                    with col3:
-                        poor_count = indicators_display_df.applymap(
-                            lambda x: 'poor' in str(x).lower() if pd.notna(x) else False
-                        ).sum().sum()
-                        st.metric("Poor Indicators", poor_count)
+                        
+                        # Style the dataframe
+                        styled_df = indicators_display_df.style.map(lambda x: style_indicators(x))
+                        st.dataframe(styled_df, use_container_width=True)
+                        
+                        # Summary statistics
+                        st.subheader("Indicator Summary")
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            good_count = indicators_display_df.applymap(
+                                lambda x: 'good' in str(x).lower() if pd.notna(x) else False
+                            ).sum().sum()
+                            st.metric("Good Indicators", good_count)
+                        
+                        with col2:
+                            moderate_count = indicators_display_df.applymap(
+                                lambda x: 'moderate' in str(x).lower() if pd.notna(x) else False
+                            ).sum().sum()
+                            st.metric("Moderate Indicators", moderate_count)
+                        
+                        with col3:
+                            poor_count = indicators_display_df.applymap(
+                                lambda x: 'poor' in str(x).lower() if pd.notna(x) else False
+                            ).sum().sum()
+                            st.metric("Poor Indicators", poor_count)
+                    else:
+                        st.info("No indicator data found for the selected time period.")
                 
                 # Original matrix data (collapsible)
                 with st.expander("View Original Data Matrix"):
@@ -804,7 +903,7 @@ if generate:
             # Data preview sections
             st.subheader("Data Previews")
             
-            preview_tabs = st.tabs(["Weather Data", "Monthly Analysis", "Data Matrix"])
+            preview_tabs = st.tabs(["Weather Data", "Monthly Analysis", "Data Matrix", "Indicators"])
             
             with preview_tabs[0]:
                 if not das_data.empty:
@@ -820,9 +919,19 @@ if generate:
             
             with preview_tabs[2]:
                 if not matrix_data.empty:
-                    st.dataframe(matrix_data, use_container_width=True)
+                    st.dataframe(matrix_data.head(), use_container_width=True)
                 else:
                     st.info("No data matrix available for preview")
+                    
+            with preview_tabs[3]:
+                if not matrix_data.empty:
+                    indicators_df = get_combined_indicators(matrix_data)
+                    if not indicators_df.empty:
+                        st.dataframe(indicators_df, use_container_width=True)
+                    else:
+                        st.info("No indicators data available for preview")
+                else:
+                    st.info("No indicators data available for preview")
 
 # -----------------------------
 # FOOTER
@@ -843,4 +952,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
