@@ -25,7 +25,7 @@ def load_data():
     rres = requests.get(rules_url, timeout=10)
     sres = requests.get(sowing_url, timeout=10)
 
-    # CHANGED: Read .xlsb file for weather data
+    # CHANGED: Use engine='pyxlsb' for .xlsb file
     weather_df = pd.read_excel(BytesIO(wres.content), engine='pyxlsb')
     rules_df = pd.read_excel(BytesIO(rres.content))
     sowing_df = pd.read_excel(BytesIO(sres.content))
@@ -103,28 +103,31 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     # Remove duplicates while preserving order
     months = list(dict.fromkeys(months))
 
-    # Select relevant columns based on new data format
-    selected_cols = ["District", "Taluka", "Circle", "Year", "Month"]
+    # Select relevant columns (District, Taluka, Circle + monthly data columns)
+    selected_cols = ["District", "Taluka", "Circle"]
     
-    # Add all parameter columns that exist in the data
-    parameter_cols = ["NDVI", "NDVI_CAT", "NDWI", "NDWI_CAT", "Indicator-1", "NDVI/NDWI", 
-                     "RAINFALL_DEV", "RAINFALL_DEV_CAT", "MAI", "MAI_CAT", "Indicator-2", 
-                     "RAINFALL/MAI", "Indicator-3", "NDVI_NDWI/RAINFALL_MAI"]
-    
-    for col in parameter_cols:
-        if col in df.columns:
-            selected_cols.append(col)
+    # Get all columns that contain any of the target months
+    for col in df.columns:
+        col_lower = str(col).lower()
+        # Skip the basic identifier columns we already have
+        if col in selected_cols:
+            continue
+            
+        # Check if this column contains any of our target months
+        for month in months:
+            month_lower = month.lower()
+            if month_lower in col_lower and "2024" in col_lower:
+                selected_cols.append(col)
+                break  # Avoid adding same column multiple times
 
-    # Filter data for the relevant months
-    df_filtered = df[df["Month"].isin(months)].copy()
-    
-    if df_filtered.empty:
+    # Ensure we have some data columns beyond the basic identifiers
+    if len(selected_cols) <= 3:
         return pd.DataFrame()
 
-    return df_filtered[selected_cols]
+    return df[selected_cols]
 
 # -----------------------------
-# NEW FUNCTION FOR MONTHLY ANALYSIS (UPDATED FOR NEW DATA FORMAT)
+# NEW FUNCTION FOR MONTHLY ANALYSIS - MODIFIED FOR NEW DATA FORMAT
 # -----------------------------
 def create_monthly_analysis(matrix_data):
     """Create detailed monthly analysis with index values and categories"""
@@ -133,29 +136,78 @@ def create_monthly_analysis(matrix_data):
     
     monthly_data = []
     
-    # Get unique months from the data
-    months = matrix_data["Month"].unique() if "Month" in matrix_data.columns else []
+    # Extract months from column names
+    months = set()
+    for col in matrix_data.columns:
+        if any(month in col for month in ['January', 'February', 'March', 'April', 'May', 'June', 
+                                         'July', 'August', 'September', 'October', 'November', 'December']):
+            for month in ['January', 'February', 'March', 'April', 'May', 'June', 
+                         'July', 'August', 'September', 'October', 'November', 'December']:
+                if month in col:
+                    months.add(month)
+                    break
+    
+    months = sorted(months, key=lambda x: datetime.strptime(x, "%B"))
+    
+    # Get unique years from the data
+    years = set()
+    for col in matrix_data.columns:
+        if '2024' in str(col):
+            years.add(2024)
+        # Add more year patterns if needed
     
     for month in months:
-        month_data = matrix_data[matrix_data["Month"] == month].iloc[0] if not matrix_data[matrix_data["Month"] == month].empty else None
-        
-        if month_data is not None:
-            monthly_data.append({
+        for year in years:
+            month_data = {
                 'Month': month,
-                'NDVI_Value': month_data.get('NDVI', None),
-                'NDVI_Category': month_data.get('NDVI_CAT', None),
-                'NDWI_Value': month_data.get('NDWI', None),
-                'NDWI_Category': month_data.get('NDWI_CAT', None),
-                'Rainfall_Dev_Value': month_data.get('RAINFALL_DEV', None),
-                'Rainfall_Dev_Category': month_data.get('RAINFALL_DEV_CAT', None),
-                'MAI_Value': month_data.get('MAI', None),
-                'MAI_Category': month_data.get('MAI_CAT', None),
-                'Indicator_1': month_data.get('Indicator-1', None),
-                'Indicator_2': month_data.get('Indicator-2', None),
-                'Indicator_3': month_data.get('Indicator-3', None)
-            })
+                'Year': year,
+                'NDVI_Value': None,
+                'NDVI_Category': None,
+                'NDWI_Value': None,
+                'NDWI_Category': None,
+                'Rainfall_Dev_Value': None,
+                'Rainfall_Dev_Category': None,
+                'MAI_Value': None,
+                'MAI_Category': None,
+                'Indicator_1': None,
+                'Indicator_2': None,
+                'Indicator_3': None
+            }
+            
+            # Extract values for each parameter
+            for col in matrix_data.columns:
+                col_str = str(col)
+                if month in col_str and str(year) in col_str:
+                    value = matrix_data[col].iloc[0] if not matrix_data[col].empty else None
+                    
+                    if 'ndvi' in col_str.lower() and 'cat' not in col_str.lower() and 'indicator' not in col_str.lower():
+                        month_data['NDVI_Value'] = value
+                    elif 'ndvi' in col_str.lower() and 'cat' in col_str.lower():
+                        month_data['NDVI_Category'] = value
+                    elif 'ndwi' in col_str.lower() and 'cat' not in col_str.lower() and 'indicator' not in col_str.lower():
+                        month_data['NDWI_Value'] = value
+                    elif 'ndwi' in col_str.lower() and 'cat' in col_str.lower():
+                        month_data['NDWI_Category'] = value
+                    elif 'rainfall_dev' in col_str.lower() and 'cat' not in col_str.lower():
+                        month_data['Rainfall_Dev_Value'] = value
+                    elif 'rainfall_dev' in col_str.lower() and 'cat' in col_str.lower():
+                        month_data['Rainfall_Dev_Category'] = value
+                    elif 'mai' in col_str.lower() and 'cat' not in col_str.lower():
+                        month_data['MAI_Value'] = value
+                    elif 'mai' in col_str.lower() and 'cat' in col_str.lower():
+                        month_data['MAI_Category'] = value
+                    elif 'indicator-1' in col_str.lower() or 'indicator-1' in col_str.lower():
+                        month_data['Indicator_1'] = value
+                    elif 'indicator-2' in col_str.lower() or 'indicator-2' in col_str.lower():
+                        month_data['Indicator_2'] = value
+                    elif 'indicator-3' in col_str.lower() or 'indicator-3' in col_str.lower():
+                        month_data['Indicator_3'] = value
+            
+            # Only add if we have at least some data
+            if any(month_data.values()):
+                monthly_data.append(month_data)
     
-    return pd.DataFrame(monthly_data) if monthly_data else pd.DataFrame()
+    return pd.DataFrame(monthly_data)
 
 def get_status_color(status):
     """Get color based on status"""
