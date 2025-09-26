@@ -17,7 +17,7 @@ st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", lay
 @st.cache_data
 def load_data():
     weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather.xlsx"
-    rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules - Copy_F.xlsx"
+    rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules.xlsx"
     sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar1.xlsx"
 
     wres = requests.get(weather_url, timeout=10)
@@ -952,4 +952,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
