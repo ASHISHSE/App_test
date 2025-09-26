@@ -5,6 +5,7 @@ numpy
 matplotlib
 requests
 plotly
+pyxlsb
 
 
 
