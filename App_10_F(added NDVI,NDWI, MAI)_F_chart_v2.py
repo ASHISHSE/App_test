@@ -70,9 +70,9 @@ weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data(
 if weather_df is None:
     st.stop()
 
-# -----------------------------
+# ---------------------------
 # LOAD CIRCLEWISE DATA MATRIX
-# -----------------------------
+# ---------------------------
 @st.cache_data
 def load_circlewise_data():
     url = "https://github.com/ASHISHSE/App_test/raw/main/Circlewise_Data_Matrix_Indicator_2024_v1.xlsx"
@@ -902,12 +902,13 @@ st.markdown(
             🌾 Empowering Farmers with Data-Driven Insights 🌾
         </span><br>
         <span style="font-size:13px; color:gray;">
-            Version 1.0 | Powered by Agricose | Last Updated: Sept 2025
+            Version 2.0 | Powered by Agricose | Last Updated: Sept 2025
         </span>
     </div>
     """,
     unsafe_allow_html=True
 )
+
 
 
 
