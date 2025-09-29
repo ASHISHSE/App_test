@@ -18,7 +18,7 @@ st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", lay
 def load_data():
     # FIXED: Use raw GitHub URLs
     weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather.xlsb"
-    rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules.xlsx"
+    rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules - Copy_F.xlsx"
     sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar1.xlsx"
 
     try:
@@ -480,3 +480,4 @@ if generate:
             pass
 
 # [Keep the footer and remaining functions the same]
+
