@@ -8,28 +8,41 @@ from io import BytesIO
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import xlrd  # Required for reading .xlsb files
 
 st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", layout="wide")
 
 # -----------------------------
-# LOAD DATA (WEATHER, RULES, SOWING)
+# LOAD DATA (WEATHER, RULES, SOWING) - UPDATED URLS
 # -----------------------------
 @st.cache_data
 def load_data():
+    # Updated URLs as per request
     weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather.xlsb"
     rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules - Copy_F.xlsx"
     sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar1.xlsx"
 
-    wres = requests.get(weather_url, timeout=10)
+    wres = requests.get(weather_url, timeout=30)
     rres = requests.get(rules_url, timeout=10)
     sres = requests.get(sowing_url, timeout=10)
 
-    weather_df = pd.read_excel(BytesIO(wres.content), engine='pyxlsb')
+    # Load weather data from .xlsb file
+    try:
+        # For .xlsb files, we need to use pyxlsb
+        import pyxlsb
+        weather_df = pd.read_excel(BytesIO(wres.content), engine='pyxlsb')
+    except ImportError:
+        st.error("pyxlsb library required for .xlsb files. Install with: pip install pyxlsb")
+        # Fallback to openpyxl if pyxlsb not available
+        weather_df = pd.read_excel(BytesIO(wres.content), engine='openpyxl')
+    except Exception as e:
+        st.error(f"Error loading weather.xlsb: {e}")
+        # Try alternative method
+        weather_df = pd.read_excel(BytesIO(wres.content))
+
     rules_df = pd.read_excel(BytesIO(rres.content))
     sowing_df = pd.read_excel(BytesIO(sres.content))
 
-    # Flexible date column detection
+    # Flexible date column detection for weather data
     date_col = None
     for candidate in ["Date(DD-MM-YYYY)", "DD-MM-YYYY", "Date"]:
         if candidate in weather_df.columns:
@@ -41,10 +54,12 @@ def load_data():
     weather_df["Date_dt"] = pd.to_datetime(weather_df[date_col], format="%d-%m-%Y", errors="coerce")
     weather_df = weather_df.dropna(subset=["Date_dt"]).copy()
 
+    # Convert numeric columns
     for col in ["Rainfall", "Tmax", "Tmin", "max_Rh", "min_Rh"]:
         if col in weather_df.columns:
             weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
 
+    # Clean string columns
     for c in ["District", "Taluka", "Circle", "Crop"]:
         if c in sowing_df.columns:
             sowing_df[c] = sowing_df[c].astype(str).str.strip()
@@ -62,34 +77,28 @@ def load_data():
 weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data()
 
 # -----------------------------
-# LOAD CIRCLEWISE DATA MATRIX
+# LOAD CIRCLEWISE DATA MATRIX - UPDATED URL
 # -----------------------------
 @st.cache_data
 def load_circlewise_data():
     url = "https://github.com/ASHISHSE/App_test/raw/main/Circlewise_Data_Matrix_Indicator_2024_F_upload.xlsx"
-    xls = pd.ExcelFile(url)
-    rs_data = pd.read_excel(xls, sheet_name="Sheet1")
-    matrix_data = pd.read_excel(xls, sheet_name="Sheet1")
-    return rs_data, matrix_data
+    return pd.read_excel(url)
 
-rs_data_df, matrix_data_df = load_circlewise_data()
+circlewise_df = load_circlewise_data()
 
 # -----------------------------
-# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA
+# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA - MONTHLY SELECTION
 # -----------------------------
 def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
-    rs_df = rs_data_df.copy()
-    matrix_df = matrix_data_df.copy()
+    df = circlewise_df.copy()
 
     # Filter by District, Taluka, Circle
-    rs_df = rs_df[(rs_df["District"] == district) & (rs_df["Taluka"] == taluka)]
-    matrix_df = matrix_df[(matrix_df["District"] == district) & (matrix_df["Taluka"] == taluka)]
-    if circle:
-        rs_df = rs_df[rs_df["Circle"] == circle]
-        matrix_df = matrix_df[matrix_df["Circle"] == circle]
+    df = df[(df["District"] == district) & (df["Taluka"] == taluka)]
+    if circle and "Circle" in df.columns:
+        df = df[df["Circle"] == circle]
 
-    if rs_df.empty or matrix_df.empty:
-        return pd.DataFrame(), pd.DataFrame()
+    if df.empty:
+        return pd.DataFrame()
 
     # Generate list of months between sowing_date and current_date
     months = []
@@ -98,112 +107,81 @@ def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     
     while current <= end:
         months.append(current.strftime("%B"))
+        # Move to next month
         if current.month == 12:
             current = current.replace(year=current.year + 1, month=1)
         else:
             current = current.replace(month=current.month + 1)
 
-    months = list(dict.fromkeys(months))  # Remove duplicates
+    # Remove duplicates while preserving order
+    months = list(dict.fromkeys(months))
 
-    # Select relevant columns from RS Data indices (NDVI, NDWI, MAI)
-    rs_cols = ["District", "Taluka", "Circle"]
-    for col in rs_df.columns:
-        col_lower = str(col).lower()
-        if any(month.lower() in col_lower for month in months) and '2024' in col_lower:
-            if any(ind in col_lower for ind in ['ndvi', 'ndwi', 'mai']) and 'cat' not in col_lower:
-                rs_cols.append(col)
-
-    # Select relevant columns from Data Matrix (Indicators)
-    matrix_cols = ["District", "Taluka", "Circle"]
-    for col in matrix_df.columns:
-        col_lower = str(col).lower()
-        if any(month.lower() in col_lower for month in months) and '2024' in col_lower:
-            if 'indicator' in col_lower:
-                matrix_cols.append(col)
-
-    return rs_df[rs_cols], matrix_df[matrix_cols]
+    # Filter data for the selected months and year 2024
+    filtered_df = df[(df["Year"] == 2024) & (df["Month"].isin(months))]
+    
+    return filtered_df
 
 # -----------------------------
-# IMPROVED FUNCTION FOR MONTHLY ANALYSIS
+# IMPROVED FUNCTION FOR MONTHLY ANALYSIS WITH TAB-SPECIFIC DATA
 # -----------------------------
-def create_monthly_analysis(rs_data, matrix_data):
-    if rs_data.empty or matrix_data.empty:
+def create_monthly_analysis(matrix_data, data_type="RS Data indices"):
+    """Create detailed monthly analysis with index values and categories"""
+    if matrix_data.empty:
         return None
     
-    monthly_data = []
-    months = ['January', 'February', 'March', 'April', 'May', 'June', 
-              'July', 'August', 'September', 'October', 'November', 'December']
+    if data_type == "RS Data indices":
+        # For NDVI, NDWI, MAI values from "RS Data indices" tab
+        monthly_data = []
+        
+        for _, row in matrix_data.iterrows():
+            month_data = {
+                'Month': row['Month'],
+                'NDVI_Value': row.get('NDVI'),
+                'NDVI_Category': row.get('NDVI_CAT'),
+                'NDWI_Value': row.get('NDWI'),
+                'NDWI_Category': row.get('NDWI_CAT'),
+                'MAI_Value': row.get('MAI'),
+                'MAI_Category': row.get('MAI_CAT')
+            }
+            monthly_data.append(month_data)
+        
+        return pd.DataFrame(monthly_data)
     
-    for month in months:
-        month_data = {
-            'Month': month,
-            'NDVI_Value': None,
-            'NDVI_Category': None,
-            'NDWI_Value': None,
-            'NDWI_Category': None,
-            'MAI_Value': None,
-            'MAI_Category': None,
-            'Indicator_1': None,
-            'Indicator_2': None,
-            'Indicator_3': None
-        }
+    elif data_type == "Data Matrix":
+        # For Indicators values from "Data Matrix" tab
+        monthly_data = []
         
-        # Extract from RS Data indices
-        for col in rs_data.columns:
-            col_str = str(col)
-            col_lower = col_str.lower()
-            month_lower = month.lower()
-            
-            if month_lower in col_lower and '2024' in col_str:
-                value = rs_data[col].iloc[0] if not rs_data[col].empty else None
-                
-                if 'ndvi' in col_lower and 'cat' not in col_lower:
-                    month_data['NDVI_Value'] = value
-                elif 'ndvi' in col_lower and 'cat' in col_lower:
-                    month_data['NDVI_Category'] = value
-                elif 'ndwi' in col_lower and 'cat' not in col_lower:
-                    month_data['NDWI_Value'] = value
-                elif 'ndwi' in col_lower and 'cat' in col_lower:
-                    month_data['NDWI_Category'] = value
-                elif 'mai' in col_lower and 'cat' not in col_lower:
-                    month_data['MAI_Value'] = value
-                elif 'mai' in col_lower and 'cat' in col_lower:
-                    month_data['MAI_Category'] = value
+        for _, row in matrix_data.iterrows():
+            month_data = {
+                'Month': row['Month'],
+                'Indicator_1': row.get('Indicator-1 NDVI/NDWI'),
+                'Indicator_2': row.get('Indicator-2 RAINFALL/MAI'),
+                'Indicator_3': row.get('Indicator-3 NDVI_NDWI/RAINFALL_MAI'),
+                'Rainfall_Dev_Value': row.get('RAINFALL_DEV'),
+                'Rainfall_Dev_Category': row.get('RAINFALL_DEV')  # Assuming same column for value and category
+            }
+            monthly_data.append(month_data)
         
-        # Extract from Data Matrix
-        for col in matrix_data.columns:
-            col_str = str(col)
-            col_lower = col_str.lower()
-            month_lower = month.lower()
-            
-            if 'indicator' in col_lower and month_lower in col_lower:
-                value = matrix_data[col].iloc[0] if not matrix_data[col].empty else None
-                
-                if 'indicator-1' in col_lower:
-                    month_data['Indicator_1'] = value
-                elif 'indicator-2' in col_lower:
-                    month_data['Indicator_2'] = value
-                elif 'indicator-3' in col_lower:
-                    month_data['Indicator_3'] = value
-        
-        monthly_data.append(month_data)
+        return pd.DataFrame(monthly_data)
     
-    return pd.DataFrame([m for m in monthly_data if any(v is not None for k, v in m.items() if k != 'Month')])
+    return None
 
 def get_status_color(status):
+    """Get color based on status"""
     if pd.isna(status):
         return '#f8f9fa'
     status_lower = str(status).lower()
     if any(word in status_lower for word in ['good', 'normal', 'above', 'excellent', 'satisfactory']):
-        return '#d4edda'
+        return '#d4edda'  # Light Green
     elif any(word in status_lower for word in ['moderate', 'average', 'medium', 'moderately']):
-        return '#fff3cd'
+        return '#fff3cd'  # Light Yellow
     elif any(word in status_lower for word in ['poor', 'deficit', 'below', 'low', 'unsatisfactory']):
-        return '#f8d7da'
+        return '#f8d7da'  # Light Red
     else:
-        return '#e9ecef'
+        return '#e9ecef'  # Default
 
 def get_status_icon(status):
+    """Get icon based on status"""
     if pd.isna(status):
         return '⚪'
     status_lower = str(status).lower()
@@ -217,120 +195,129 @@ def get_status_icon(status):
         return '⚪'
 
 # -----------------------------
-# COMBINED INDICATOR PROCESSING
+# IMPROVED DATA MATRIX PROCESSING FOR COMBINED INDICATOR TAB
 # -----------------------------
 def get_combined_indicators(matrix_data):
+    """Extract combined indicators (Good, Moderate, Poor) for all months"""
     if matrix_data.empty:
         return pd.DataFrame()
     
     indicators_data = []
-    months = ['January', 'February', 'March', 'April', 'May', 'June', 
-              'July', 'August', 'September', 'October', 'November', 'December']
     
-    for month in months:
-        month_data = {'Month': month, 'Indicator_1': None, 'Indicator_2': None, 'Indicator_3': None}
-        
-        for col in matrix_data.columns:
-            col_str = str(col)
-            col_lower = col_str.lower()
-            month_lower = month.lower()
-            
-            if 'indicator' in col_lower and month_lower in col_lower:
-                value = matrix_data[col].iloc[0] if not matrix_data[col].empty else None
-                
-                if 'indicator-1' in col_lower:
-                    month_data['Indicator_1'] = value
-                elif 'indicator-2' in col_lower:
-                    month_data['Indicator_2'] = value
-                elif 'indicator-3' in col_lower:
-                    month_data['Indicator_3'] = value
-        
+    for _, row in matrix_data.iterrows():
+        month_data = {
+            'Month': row['Month'],
+            'Indicator_1': row.get('Indicator-1 NDVI/NDWI'),
+            'Indicator_2': row.get('Indicator-2 RAINFALL/MAI'),
+            'Indicator_3': row.get('Indicator-3 NDVI_NDWI/RAINFALL_MAI')
+        }
         indicators_data.append(month_data)
     
-    return pd.DataFrame([m for m in indicators_data if any(v is not None for k, v in m.items() if k != 'Month')])
+    return pd.DataFrame(indicators_data)
 
 # -----------------------------
-# CHART FUNCTIONS
+# CHART FUNCTIONS FOR DATA CHARTS TAB
 # -----------------------------
 def create_weather_parameters_charts(monthly_df):
+    """Create column charts for weather parameters"""
     if monthly_df is None or monthly_df.empty:
         return None
     
+    # Convert month names to datetime for proper sorting
     monthly_df['Month_Num'] = monthly_df['Month'].apply(lambda x: datetime.strptime(x, '%B').month)
     monthly_df = monthly_df.sort_values('Month_Num')
     
+    # Create subplots for weather parameters
     fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=('NDVI Index', 'NDWI Index', 'MAI Index', 'Vegetation & Water Status'),
+        rows=3, cols=2,
+        subplot_titles=('Rainfall Deviation (%)', 'MAI Index', 'NDVI Index', 'NDWI Index', 
+                       'Vegetation Health', 'Water Content'),
         vertical_spacing=0.15,
         horizontal_spacing=0.1
     )
     
-    # NDVI Index
-    if any(pd.notna(monthly_df['NDVI_Value'])):
+    # Rainfall Deviation
+    if any(pd.notna(monthly_df['Rainfall_Dev_Value'])):
         fig.add_trace(
-            go.Bar(name='NDVI', x=monthly_df['Month'], y=monthly_df['NDVI_Value'],
-                   marker_color='green'),
-            row=1, col=1
-        )
-    
-    # NDWI Index
-    if any(pd.notna(monthly_df['NDWI_Value'])):
-        fig.add_trace(
-            go.Bar(name='NDWI', x=monthly_df['Month'], y=monthly_df['NDWI_Value'],
+            go.Bar(name='Rainfall Deviation', x=monthly_df['Month'], y=monthly_df['Rainfall_Dev_Value'], 
                    marker_color='blue'),
-            row=1, col=2
+            row=1, col=1
         )
     
     # MAI Index
     if any(pd.notna(monthly_df['MAI_Value'])):
         fig.add_trace(
             go.Bar(name='MAI', x=monthly_df['Month'], y=monthly_df['MAI_Value'],
-                   marker_color='orange'),
+                   marker_color='lightblue'),
+            row=1, col=2
+        )
+    
+    # NDVI Index
+    if any(pd.notna(monthly_df['NDVI_Value'])):
+        fig.add_trace(
+            go.Bar(name='NDVI', x=monthly_df['Month'], y=monthly_df['NDVI_Value'],
+                   marker_color='green'),
             row=2, col=1
         )
     
-    # Combined Vegetation Health and Water Content
-    if any(pd.notna(monthly_df['NDVI_Category'])) or any(pd.notna(monthly_df['NDWI_Category'])):
+    # NDWI Index
+    if any(pd.notna(monthly_df['NDWI_Value'])):
+        fig.add_trace(
+            go.Bar(name='NDWI', x=monthly_df['Month'], y=monthly_df['NDWI_Value'],
+                   marker_color='orange'),
+            row=2, col=2
+        )
+    
+    # Vegetation Health (NDVI Category as numeric for visualization)
+    if any(pd.notna(monthly_df['NDVI_Category'])):
+        # Convert categories to numeric values for visualization
         category_map = {'Good': 3, 'Moderate': 2, 'Poor': 1, 'Very Poor': 0}
         veg_health = monthly_df['NDVI_Category'].map(category_map)
-        water_content = monthly_df['NDWI_Category'].map(category_map)
-        
         fig.add_trace(
-            go.Bar(name='Vegetation Health (NDVI)', x=monthly_df['Month'], y=veg_health,
+            go.Bar(name='Vegetation Health', x=monthly_df['Month'], y=veg_health,
                    marker_color='darkgreen'),
-            row=2, col=2
+            row=3, col=1
         )
+        fig.update_yaxes(title_text="Health Score (3=Good, 0=Poor)", row=3, col=1)
+    
+    # Water Content (NDWI Category as numeric for visualization)
+    if any(pd.notna(monthly_df['NDWI_Category'])):
+        category_map = {'Good': 3, 'Moderate': 2, 'Poor': 1, 'Very Poor': 0}
+        water_content = monthly_df['NDWI_Category'].map(category_map)
         fig.add_trace(
-            go.Bar(name='Water Content (NDWI)', x=monthly_df['Month'], y=water_content,
-                   marker_color='darkblue', xaxis='x4', offsetgroup=2),
-            row=2, col=2
+            go.Bar(name='Water Content', x=monthly_df['Month'], y=water_content,
+                   marker_color='darkblue'),
+            row=3, col=2
         )
-        fig.update_yaxes(title_text="Score (3=Good, 0=Poor)", row=2, col=2)
+        fig.update_yaxes(title_text="Water Score (3=Good, 0=Poor)", row=3, col=2)
     
     fig.update_layout(
         title="Monthly Parameters Analysis",
-        height=600,
-        showlegend=True,
-        template="plotly_white",
-        barmode='group'
+        height=900,
+        showlegend=False,
+        template="plotly_white"
     )
     
-    fig.update_yaxes(title_text="NDVI Value", row=1, col=1)
-    fig.update_yaxes(title_text="NDWI Value", row=1, col=2)
-    fig.update_yaxes(title_text="MAI Value", row=2, col=1)
+    # Update y-axis titles
+    fig.update_yaxes(title_text="Deviation %", row=1, col=1)
+    fig.update_yaxes(title_text="MAI Value", row=1, col=2)
+    fig.update_yaxes(title_text="NDVI Value", row=2, col=1)
+    fig.update_yaxes(title_text="NDWI Value", row=2, col=2)
     
     return fig
 
 def create_indices_line_chart(monthly_df):
+    """Create line chart for NDVI, NDWI indices"""
     if monthly_df is None or monthly_df.empty:
         return None
     
+    # Convert month names to datetime for proper sorting
     monthly_df['Month_Num'] = monthly_df['Month'].apply(lambda x: datetime.strptime(x, '%B').month)
     monthly_df = monthly_df.sort_values('Month_Num')
     
     fig = go.Figure()
     
+    # Add NDVI line
     if any(pd.notna(monthly_df['NDVI_Value'])):
         fig.add_trace(go.Scatter(
             x=monthly_df['Month'],
@@ -341,6 +328,7 @@ def create_indices_line_chart(monthly_df):
             marker=dict(size=8)
         ))
     
+    # Add NDWI line
     if any(pd.notna(monthly_df['NDWI_Value'])):
         fig.add_trace(go.Scatter(
             x=monthly_df['Month'],
@@ -362,58 +350,58 @@ def create_indices_line_chart(monthly_df):
     
     return fig
 
-def create_mai_chart(monthly_df):
+def create_mai_rainfall_chart(monthly_df):
+    """Create column chart for MAI and Rainfall Deviation"""
     if monthly_df is None or monthly_df.empty:
         return None
     
+    # Convert month names to datetime for proper sorting
     monthly_df['Month_Num'] = monthly_df['Month'].apply(lambda x: datetime.strptime(x, '%B').month)
     monthly_df = monthly_df.sort_values('Month_Num')
     
     fig = go.Figure()
     
+    # Add MAI bars
     if any(pd.notna(monthly_df['MAI_Value'])):
         fig.add_trace(go.Bar(
             name='MAI',
             x=monthly_df['Month'],
             y=monthly_df['MAI_Value'],
-            marker_color='orange'
+            marker_color='orange',
+            yaxis='y'
         ))
     
+    # Add Rainfall Deviation bars on secondary axis if values are very different
+    if any(pd.notna(monthly_df['Rainfall_Dev_Value'])):
+        fig.add_trace(go.Bar(
+            name='Rainfall Deviation (%)',
+            x=monthly_df['Month'],
+            y=monthly_df['Rainfall_Dev_Value'],
+            marker_color='purple',
+            yaxis='y2'
+        ))
+        
+        # Add secondary y-axis for Rainfall Deviation
+        fig.update_layout(
+            yaxis2=dict(
+                title='Rainfall Deviation (%)',
+                overlaying='y',
+                side='right'
+            )
+        )
+    else:
+        # If no rainfall deviation data, use single y-axis
+        fig.update_layout(yaxis_title="Value")
+    
     fig.update_layout(
-        title="Monthly MAI Analysis",
+        title="Monthly MAI & Rainfall Deviation Analysis",
         xaxis_title="Month",
-        yaxis_title="MAI Value",
+        barmode='group',
         height=400,
         template="plotly_white"
     )
     
     return fig
-
-# -----------------------------
-# DEBUG FUNCTION
-# -----------------------------
-def debug_column_names(rs_data, matrix_data):
-    columns_info = []
-    for col in rs_data.columns:
-        col_str = str(col)
-        columns_info.append({
-            'Source': 'RS Data indices',
-            'Column Name': col_str,
-            'Has NDVI': 'NDVI' in col_str.upper(),
-            'Has NDWI': 'NDWI' in col_str.upper(),
-            'Has MAI': 'MAI' in col_str.upper(),
-            'Has Category': 'CAT' in col_str.upper()
-        })
-    for col in matrix_data.columns:
-        col_str = str(col)
-        columns_info.append({
-            'Source': 'Data Matrix',
-            'Column Name': col_str,
-            'Has Indicator': 'INDICATOR' in col_str.upper(),
-            'Has Category': 'CAT' in col_str.upper()
-        })
-    
-    return pd.DataFrame(columns_info)
 
 # -----------------------------
 # OTHER HELPER FUNCTIONS
@@ -571,11 +559,16 @@ if generate:
 
         metrics = calculate_weather_metrics(weather_df, level, level_name, sowing_date_str, current_date_str)
         das_data = metrics["das_data"]
-        rs_data, matrix_data = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
-        monthly_df = create_monthly_analysis(rs_data, matrix_data) if not rs_data.empty and not matrix_data.empty else None
         
+        # Get circlewise data for both RS Data indices and Data Matrix
+        matrix_data_rs = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
+        monthly_df_rs = create_monthly_analysis(matrix_data_rs, "RS Data indices") if not matrix_data_rs.empty else None
+        monthly_df_matrix = create_monthly_analysis(matrix_data_rs, "Data Matrix") if not matrix_data_rs.empty else None
+        
+        # Create tabs
         tab1, tab2, tab3, tab4 = st.tabs(["🌤️ Weather Metrics", "📊 Data Charts", "🔍 Combined Indicator", "💾 Data Download"])
         
+        # TAB 1: WEATHER METRICS (Existing functionality)
         with tab1:
             st.header("🌤️ Weather Metrics")
             c1, c2, c3 = st.columns(3)
@@ -593,6 +586,7 @@ if generate:
                 st.metric("Max RH Avg", f"{metrics['max_rh_avg']:.1f}" if metrics['max_rh_avg'] else "N/A")
                 st.metric("Min RH Avg", f"{metrics['min_rh_avg']:.1f}" if metrics['min_rh_avg'] else "N/A")
 
+            # Daily Weather
             st.markdown("---")
             st.header("📅 Daily Weather Data (Highlighted Rainy Days)")
             if not das_data.empty:
@@ -608,6 +602,7 @@ if generate:
             else:
                 st.info("No daily weather data for selected date range.")
 
+            # Sowing Comments
             st.markdown("---")
             st.header("📝 Comment on Sowing")
             comments = get_sowing_comments(sowing_date_str, district, taluka, circle, crop, sowing_df)
@@ -618,6 +613,7 @@ if generate:
             else:
                 st.write("No matching sowing comments found.")
 
+            # Growth Stage
             st.markdown("---")
             st.header("🌱 Growth Stage Advisory")
             growth_data = get_growth_advisory(crop, metrics["das"], metrics["rainfall_das"], rules_df)
@@ -629,58 +625,55 @@ if generate:
             else:
                 st.write("No matching growth advisory found.")
         
+        # TAB 2: DATA CHARTS
         with tab2:
             st.header("📊 Data Charts - Monthly Analysis")
             
-            if not rs_data.empty or not matrix_data.empty:
-                with st.expander("🔍 Debug: View Column Names Structure"):
-                    st.write("This section shows how the system is interpreting your data columns:")
-                    debug_df = debug_column_names(rs_data, matrix_data)
-                    st.dataframe(debug_df, use_container_width=True)
-            
-            if monthly_df is not None and not monthly_df.empty:
-                st.subheader("📋 Detected Monthly Data")
-                st.dataframe(monthly_df, use_container_width=True)
-                
-                st.subheader("🌤️ Parameters - Monthly Column Charts")
-                weather_chart = create_weather_parameters_charts(monthly_df)
-                if weather_chart:
-                    st.plotly_chart(weather_chart, use_container_width=True)
+            if not matrix_data_rs.empty:
+                # Display RS Data indices (NDVI, NDWI, MAI)
+                st.subheader("🛰️ RS Data Indices (NDVI, NDWI, MAI)")
+                if monthly_df_rs is not None and not monthly_df_rs.empty:
+                    st.dataframe(monthly_df_rs, use_container_width=True)
+                    
+                    # NDVI/NDWI Line Chart
+                    st.subheader("📈 NDVI & NDWI Indices - Monthly Line Chart")
+                    indices_chart = create_indices_line_chart(monthly_df_rs)
+                    if indices_chart:
+                        st.plotly_chart(indices_chart, use_container_width=True)
+                    else:
+                        st.info("NDVI/NDWI data not available for line chart.")
+                    
+                    # MAI & Rainfall Deviation Column Chart
+                    st.subheader("🌧️ MAI Analysis - Monthly Column Chart")
+                    mai_chart = create_mai_rainfall_chart(monthly_df_rs)
+                    if mai_chart:
+                        st.plotly_chart(mai_chart, use_container_width=True)
+                    else:
+                        st.info("MAI data not available.")
                 else:
-                    st.info("Parameters chart data not available.")
+                    st.info("No RS Data indices available for the selected parameters.")
                 
-                st.subheader("📈 NDVI & NDWI Indices - Monthly Line Chart")
-                indices_chart = create_indices_line_chart(monthly_df)
-                if indices_chart:
-                    st.plotly_chart(indices_chart, use_container_width=True)
+                # Display Data Matrix indicators
+                st.subheader("📋 Data Matrix Indicators")
+                if monthly_df_matrix is not None and not monthly_df_matrix.empty:
+                    st.dataframe(monthly_df_matrix, use_container_width=True)
                 else:
-                    st.info("NDVI/NDWI data not available for line chart.")
-                
-                st.subheader("🌧️ MAI - Monthly Column Chart")
-                mai_chart = create_mai_chart(monthly_df)
-                if mai_chart:
-                    st.plotly_chart(mai_chart, use_container_width=True)
-                else:
-                    st.info("MAI data not available.")
+                    st.info("No Data Matrix indicators available.")
             else:
                 st.info("No monthly analysis data available for the selected parameters.")
-                if not rs_data.empty or not matrix_data.empty:
-                    st.write("Available columns in RS Data indices:")
-                    st.write(list(rs_data.columns))
-                    st.write("Available columns in Data Matrix:")
-                    st.write(list(matrix_data.columns))
         
+        # TAB 3: COMBINED INDICATOR
         with tab3:
             st.header("🔍 Combined Indicator - Data Matrix")
             
-            if not matrix_data.empty:
-                indicators_df = get_combined_indicators(matrix_data)
+            if not matrix_data_rs.empty:
+                # Get combined indicators
+                indicators_df = get_combined_indicators(matrix_data_rs)
                 
                 if not indicators_df.empty:
                     st.subheader("Monthly Indicator Status")
-                    st.write("Detected Indicator Values:")
-                    st.dataframe(indicators_df, use_container_width=True)
                     
+                    # Create a styled table for indicators
                     display_data = []
                     for _, row in indicators_df.iterrows():
                         if pd.notna(row.get('Indicator_1')) or pd.notna(row.get('Indicator_2')) or pd.notna(row.get('Indicator_3')):
@@ -694,6 +687,7 @@ if generate:
                     if display_data:
                         indicators_display_df = pd.DataFrame(display_data)
                         
+                        # Apply styling based on status
                         def style_indicators(val):
                             if pd.isna(val):
                                 return ''
@@ -706,9 +700,11 @@ if generate:
                                 return 'background-color: #f8d7da; color: #721c24;'
                             return ''
                         
+                        # Style the dataframe
                         styled_df = indicators_display_df.style.map(lambda x: style_indicators(x))
                         st.dataframe(styled_df, use_container_width=True)
                         
+                        # Summary statistics
                         st.subheader("Indicator Summary")
                         col1, col2, col3 = st.columns(3)
                         
@@ -732,19 +728,23 @@ if generate:
                     else:
                         st.info("No indicator data found for the selected time period.")
                 
+                # Original matrix data (collapsible)
                 with st.expander("View Original Data Matrix"):
-                    st.dataframe(matrix_data, use_container_width=True)
+                    st.dataframe(matrix_data_rs, use_container_width=True)
             else:
                 st.info("No data matrix available for the selected parameters.")
         
+        # TAB 4: DATA DOWNLOAD
         with tab4:
             st.header("💾 Data Download")
             
+            # Available datasets for download
             st.subheader("Available Datasets")
             
             col1, col2 = st.columns(2)
             
             with col1:
+                # Weather Data
                 st.write("**🌤️ Weather Data**")
                 if not das_data.empty:
                     weather_csv = das_data.to_csv(index=False)
@@ -757,34 +757,37 @@ if generate:
                 else:
                     st.write("No weather data available")
                 
-                st.write("**📊 Monthly Analysis Data**")
-                if monthly_df is not None and not monthly_df.empty:
-                    monthly_csv = monthly_df.to_csv(index=False)
+                # RS Data Indices
+                st.write("**🛰️ RS Data Indices**")
+                if monthly_df_rs is not None and not monthly_df_rs.empty:
+                    monthly_csv = monthly_df_rs.to_csv(index=False)
                     st.download_button(
-                        label="Download Monthly Analysis (CSV)",
+                        label="Download RS Data Indices (CSV)",
                         data=monthly_csv,
-                        file_name=f"monthly_analysis_{district}_{taluka}_{circle}.csv",
+                        file_name=f"rs_data_indices_{district}_{taluka}_{circle}.csv",
                         mime="text/csv"
                     )
                 else:
-                    st.write("No monthly analysis data available")
+                    st.write("No RS data indices available")
             
             with col2:
-                st.write("**🔍 RS Data indices**")
-                if not rs_data.empty:
-                    rs_csv = rs_data.to_csv(index=False)
+                # Data Matrix
+                st.write("**🔍 Data Matrix**")
+                if not matrix_data_rs.empty:
+                    matrix_csv = matrix_data_rs.to_csv(index=False)
                     st.download_button(
-                        label="Download RS Data indices (CSV)",
-                        data=rs_csv,
-                        file_name=f"rs_data_{district}_{taluka}_{circle}.csv",
+                        label="Download Data Matrix (CSV)",
+                        data=matrix_csv,
+                        file_name=f"data_matrix_{district}_{taluka}_{circle}.csv",
                         mime="text/csv"
                     )
                 else:
-                    st.write("No RS data available")
+                    st.write("No data matrix available")
                 
+                # Combined Indicators
                 st.write("**📈 Combined Indicators**")
-                if not matrix_data.empty:
-                    indicators_df = get_combined_indicators(matrix_data)
+                if not matrix_data_rs.empty:
+                    indicators_df = get_combined_indicators(matrix_data_rs)
                     if not indicators_df.empty:
                         indicators_csv = indicators_df.to_csv(index=False)
                         st.download_button(
@@ -798,9 +801,10 @@ if generate:
                 else:
                     st.write("No indicators data available")
             
+            # Data preview sections
             st.subheader("Data Previews")
             
-            preview_tabs = st.tabs(["Weather Data", "Monthly Analysis", "RS Data indices", "Indicators"])
+            preview_tabs = st.tabs(["Weather Data", "RS Data Indices", "Data Matrix", "Indicators"])
             
             with preview_tabs[0]:
                 if not das_data.empty:
@@ -809,20 +813,20 @@ if generate:
                     st.info("No weather data available for preview")
             
             with preview_tabs[1]:
-                if monthly_df is not None and not monthly_df.empty:
-                    st.dataframe(monthly_df, use_container_width=True)
+                if monthly_df_rs is not None and not monthly_df_rs.empty:
+                    st.dataframe(monthly_df_rs, use_container_width=True)
                 else:
-                    st.info("No monthly analysis data available for preview")
+                    st.info("No RS data indices available for preview")
             
             with preview_tabs[2]:
-                if not rs_data.empty:
-                    st.dataframe(rs_data.head(), use_container_width=True)
+                if not matrix_data_rs.empty:
+                    st.dataframe(matrix_data_rs.head(), use_container_width=True)
                 else:
-                    st.info("No RS data available for preview")
+                    st.info("No data matrix available for preview")
                     
             with preview_tabs[3]:
-                if not matrix_data.empty:
-                    indicators_df = get_combined_indicators(matrix_data)
+                if not matrix_data_rs.empty:
+                    indicators_df = get_combined_indicators(matrix_data_rs)
                     if not indicators_df.empty:
                         st.dataframe(indicators_df, use_container_width=True)
                     else:
@@ -849,4 +853,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
