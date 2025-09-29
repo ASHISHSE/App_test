@@ -87,14 +87,20 @@ def load_circlewise_data():
 circlewise_df = load_circlewise_data()
 
 # -----------------------------
-# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA - MONTHLY SELECTION
+# MODIFIED HELPER FUNCTION FOR CIRCLEWISE DATA - SHOW ALL CIRCLES FOR SELECTED DISTRICT
 # -----------------------------
 def get_circlewise_data(district, taluka, circle, sowing_date, current_date):
     df = circlewise_df.copy()
 
-    # Filter by District, Taluka, Circle
-    df = df[(df["District"] == district) & (df["Taluka"] == taluka)]
-    if circle and "Circle" in df.columns:
+    # MODIFIED: Filter only by District to show all circles in the district
+    df = df[(df["District"] == district)]
+    
+    # Optional: If taluka is selected, filter by taluka as well
+    if taluka and taluka != "":
+        df = df[df["Taluka"] == taluka]
+    
+    # Optional: If specific circle is selected, filter by circle
+    if circle and circle != "" and "Circle" in df.columns:
         df = df[df["Circle"] == circle]
 
     if df.empty:
@@ -135,6 +141,9 @@ def create_monthly_analysis(matrix_data, data_type="RS Data indices"):
         
         for _, row in matrix_data.iterrows():
             month_data = {
+                'District': row.get('District'),
+                'Taluka': row.get('Taluka'),
+                'Circle': row.get('Circle'),
                 'Month': row['Month'],
                 'NDVI_Value': row.get('NDVI'),
                 'NDVI_Category': row.get('NDVI_CAT'),
@@ -155,11 +164,13 @@ def create_monthly_analysis(matrix_data, data_type="RS Data indices"):
         
         for _, row in matrix_data.iterrows():
             month_data = {
+                'District': row.get('District'),
+                'Taluka': row.get('Taluka'),
+                'Circle': row.get('Circle'),
                 'Month': row['Month'],
                 'Indicator_1': row.get('Indicator-1 NDVI/NDWI'),
                 'Indicator_2': row.get('Indicator-2 RAINFALL/MAI'),
                 'Indicator_3': row.get('Indicator-3 NDVI_NDWI/RAINFALL_MAI'),
-           
             }
             monthly_data.append(month_data)
         
@@ -207,6 +218,9 @@ def get_combined_indicators(matrix_data):
     
     for _, row in matrix_data.iterrows():
         month_data = {
+            'District': row.get('District'),
+            'Taluka': row.get('Taluka'),
+            'Circle': row.get('Circle'),
             'Month': row['Month'],
             'Indicator_1': row.get('Indicator-1 NDVI/NDWI'),
             'Indicator_2': row.get('Indicator-2 RAINFALL/MAI'),
@@ -562,6 +576,7 @@ if generate:
         das_data = metrics["das_data"]
         
         # Get circlewise data for both RS Data indices and Data Matrix
+        # MODIFIED: Now this will get all circles for the selected district
         matrix_data_rs = get_circlewise_data(district, taluka, circle, sowing_date, current_date)
         monthly_df_rs = create_monthly_analysis(matrix_data_rs, "RS Data indices") if not matrix_data_rs.empty else None
         monthly_df_matrix = create_monthly_analysis(matrix_data_rs, "Data Matrix") if not matrix_data_rs.empty else None
@@ -679,6 +694,9 @@ if generate:
                     for _, row in indicators_df.iterrows():
                         if pd.notna(row.get('Indicator_1')) or pd.notna(row.get('Indicator_2')) or pd.notna(row.get('Indicator_3')):
                             display_data.append({
+                                'District': row.get('District', ''),
+                                'Taluka': row.get('Taluka', ''),
+                                'Circle': row.get('Circle', ''),
                                 'Month': row['Month'],
                                 'Indicator-1 (NDVI/NDWI)': f"{get_status_icon(row.get('Indicator_1', ''))} {row.get('Indicator_1', 'N/A')}",
                                 'Indicator-2 (Rainfall/MAI)': f"{get_status_icon(row.get('Indicator_2', ''))} {row.get('Indicator_2', 'N/A')}",
@@ -854,9 +872,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-
-
-
-
-
