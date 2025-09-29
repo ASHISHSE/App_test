@@ -141,7 +141,9 @@ def create_monthly_analysis(matrix_data, data_type="RS Data indices"):
                 'NDWI_Value': row.get('NDWI'),
                 'NDWI_Category': row.get('NDWI_CAT'),
                 'MAI_Value': row.get('MAI'),
-                'MAI_Category': row.get('MAI_CAT')
+                'MAI_Category': row.get('MAI_CAT'),
+                'Rainfall_Dev_Value': row.get('RAINFALL_DEV'),
+                'Rainfall_Dev_Category': row.get('RAINFALL_DEV_CAT') 
             }
             monthly_data.append(month_data)
         
@@ -157,8 +159,7 @@ def create_monthly_analysis(matrix_data, data_type="RS Data indices"):
                 'Indicator_1': row.get('Indicator-1 NDVI/NDWI'),
                 'Indicator_2': row.get('Indicator-2 RAINFALL/MAI'),
                 'Indicator_3': row.get('Indicator-3 NDVI_NDWI/RAINFALL_MAI'),
-                'Rainfall_Dev_Value': row.get('RAINFALL_DEV'),
-                'Rainfall_Dev_Category': row.get('RAINFALL_DEV_CAT')  # Assuming same column for value and category
+           
             }
             monthly_data.append(month_data)
         
@@ -853,6 +854,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
