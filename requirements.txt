@@ -6,6 +6,8 @@ matplotlib
 requests
 plotly
 pyxlsb
+xlrd
+
 
 
 
