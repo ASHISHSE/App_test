@@ -68,8 +68,8 @@ weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data(
 def load_circlewise_data():
     url = "https://github.com/ASHISHSE/App_test/raw/main/Circlewise_Data_Matrix_Indicator_2024_F_upload.xlsx"
     xls = pd.ExcelFile(url)
-    rs_data = pd.read_excel(xls, sheet_name="RS Data indices")
-    matrix_data = pd.read_excel(xls, sheet_name="Data Matrix")
+    rs_data = pd.read_excel(xls, sheet_name="Sheet1")
+    matrix_data = pd.read_excel(xls, sheet_name="Sheet1")
     return rs_data, matrix_data
 
 rs_data_df, matrix_data_df = load_circlewise_data()
@@ -849,3 +849,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
