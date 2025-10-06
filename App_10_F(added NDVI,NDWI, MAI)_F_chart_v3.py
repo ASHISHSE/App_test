@@ -31,7 +31,7 @@ def load_data():
         import pyxlsb
         weather_df = pd.read_excel(BytesIO(wres.content), engine='pyxlsb')
     except ImportError:
-        st.error("pyxlsb library required for .xlsb files. Install with: pip install pyxlsb")
+        #st.error("pyxlsb library required for .xlsb files. Install with: pip install pyxlsb")
         # Fallback to openpyxl if pyxlsb not available
         weather_df = pd.read_excel(BytesIO(wres.content), engine='openpyxl')
     except Exception as e:
@@ -892,4 +892,5 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True
+
 )
