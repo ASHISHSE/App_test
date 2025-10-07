@@ -19,7 +19,7 @@ def load_data():
     # Updated URLs as per request
     weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather_f_upload.xlsx"
     rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules - Copy_F.xlsx"
-    sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar1.xlsx"
+    sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar1_f_upload.xlsx"
 
     wres = requests.get(weather_url, timeout=30)
     rres = requests.get(rules_url, timeout=10)
@@ -1086,6 +1086,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
