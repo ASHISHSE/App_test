@@ -81,7 +81,7 @@ weather_df, rules_df, sowing_df, districts, talukas, circles, crops = load_data(
 # -----------------------------
 @st.cache_data
 def load_circlewise_data():
-    url = "https://github.com/ASHISHSE/App_test/raw/main/Circlewise_Data_Matrix_Indicator_2024_F_upload.xlsx"
+    url = "https://github.com/ASHISHSE/App_test/raw/main/Circlewise_Data_Matrix_Indicator_2024_f_upload.xlsx"
     return pd.read_excel(url)
 
 circlewise_df = load_circlewise_data()
@@ -1086,6 +1086,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
