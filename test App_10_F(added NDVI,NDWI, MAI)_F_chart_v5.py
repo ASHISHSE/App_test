@@ -25,8 +25,8 @@ st.markdown("""
 
         html, body, [class*="css"] {
             font-family: 'Inter', sans-serif;
-            background-color: green;
-            color: green;
+            background-color: dark green;
+            color: dark green;
         }
 
         /* Centered Responsive Header */
@@ -1813,6 +1813,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
