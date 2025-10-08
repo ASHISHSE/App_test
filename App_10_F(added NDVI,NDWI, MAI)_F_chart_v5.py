@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", layout="wide")
+#st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", layout="wide")
 
 # -----------------------------
 # LOAD DATA (WEATHER, RULES, SOWING) - UPDATED URLS
@@ -1002,6 +1002,7 @@ def get_growth_advisory(crop, das, rainfall_das, rules_df):
 # -----------------------------
 # MAIN UI WITH TABS
 # -----------------------------
+st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", layout="wide")
 st.markdown(
     "<span style='color: red; font-weight: bold;'>⚠️ Testing Version:</span> "
     "Data uploaded from <b>01 June 2024</b> to <b>31 Oct 2024</b>. "
@@ -1415,4 +1416,5 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
