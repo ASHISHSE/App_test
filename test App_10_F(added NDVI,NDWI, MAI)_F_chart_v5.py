@@ -1320,12 +1320,33 @@ st.markdown(
 )
 
     
-st.markdown(
-    "<span style='color: red; font-weight: bold;'>⚠️ Testing Version:</span> "
-    "Data uploaded from <b>01 June 2024</b> to <b>31 Oct 2024</b>. "
-    "Please select (Sowing & Current) dates within this range.",
-    unsafe_allow_html=True
-)
+# --- Testing / Instruction Note ---
+st.markdown("""
+<div style='
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left: 4px solid #f4a261;
+    padding: 10px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+'>
+    <span style='color: #ffba08; font-weight: 700;'>⚠️ Testing Version:</span>
+    <span style='color: #e9ecef;'>
+        Data uploaded from <b>01 June 2024</b> to <b>31 Oct 2024</b>.
+        Please select <b>(Sowing & Current)</b> dates within this range.
+    </span>
+    <br><br>
+    <span style='color: #9be5b2;'>
+        🔹 <b>Level of Selection:</b> You can select data from 
+        <b>Circle → Taluka → District</b> level.
+    </span>
+    <br>
+    <span style='color: #b2f2bb;'>
+        🔸 You may also select only <b>District</b> or <b>Taluka</b> level if required.
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
 
 # Responsive columns - stack on mobile
 if is_mobile_view():
@@ -1792,6 +1813,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
