@@ -27,7 +27,7 @@ st.markdown("""
         html, body, [class*="css"] {
             font-family: 'Inter', sans-serif;
             background-color: #0f1117;  /* subtle dark background */
-            color: #e5e5e5;
+            color: 'dark green';
         }
 
         /* HEADER SECTION */
@@ -1769,6 +1769,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
