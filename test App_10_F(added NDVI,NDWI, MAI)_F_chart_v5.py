@@ -1215,12 +1215,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown(
-    "<span style='color: green; font-weight: bold; layout: wide;'>🌱 Crop Advisory System 🌱:</span> "
-   ,
-    unsafe_allow_html=True
-)
-
     
 st.markdown(
     "<span style='color: red; font-weight: bold;'>⚠️ Testing Version:</span> "
@@ -1694,6 +1688,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
