@@ -9,16 +9,50 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# This MUST come before any other st. commands
+
+
+# Must be the first Streamlit command
 st.set_page_config(
-    page_title="🌱 Crop Advisory System",
-    page_icon="🌱",
+    page_title="🌾 Smart Crop Advisory Dashboard",
+    page_icon="🌾",
     layout="wide"
 )
 
-# Then start your app
-st.title("🌱 Crop Advisory System")
-st.write("Welcome to the Crop Advisory Dashboard.")
+# Custom Font & Header Styling
+st.markdown("""
+    <style>
+        /* Import a professional font from Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        html, body, [class*="css"]  {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Stylish title */
+        .main-title {
+            font-size: 2.3rem;
+            font-weight: 700;
+            color: #1B4332;
+            text-align: center;
+            padding: 15px 0px 5px 0px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Subheading style */
+        .subtitle {
+            font-size: 1.1rem;
+            color: #2D6A4F;
+            text-align: center;
+            font-weight: 500;
+            margin-bottom: 25px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Attractive Title and Subtitle
+st.markdown('<div class="main-title">🌾 Smart Crop Advisory Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Empowering Farmers with Data-Driven Decisions</div>', unsafe_allow_html=True)
+
 
 # -----------------------------
 # LOAD DATA (WEATHER, RULES, SOWING) - UPDATED URLS
@@ -1688,6 +1722,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
