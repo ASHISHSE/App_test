@@ -31,8 +31,7 @@ st.markdown("""
 
         /* Centered Responsive Header */
         .main-header {
-            display: flex;
-            color: dark green;
+            display: flex;          
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -68,7 +67,7 @@ st.markdown("""
 
         .subtitle {
             font-size: clamp(1rem, 1.5vw, 1.2rem);
-            color: #95d5b2;
+            color: green;
             font-weight: 500;
             margin-top: 8px;
             letter-spacing: 0.4px;
@@ -1814,6 +1813,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
