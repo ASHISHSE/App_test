@@ -35,7 +35,7 @@ def load_data():
         # Fallback to openpyxl if pyxlsb not available
         weather_df = pd.read_excel(BytesIO(wres.content), engine='openpyxl')
     except Exception as e:
-        st.error(f"Error loading weather.xlsb: {e}")
+        #st.error(f"Error loading weather.xlsb: {e}")
         # Try alternative method
         weather_df = pd.read_excel(BytesIO(wres.content))
 
@@ -1676,4 +1676,5 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True
+
 )
