@@ -11,23 +11,25 @@ from plotly.subplots import make_subplots
 
 import streamlit as st
 
+import streamlit as st
+
 # --- Page Config ---
 st.set_page_config(
-    page_title="🌾 Smart Crop Advisory Dashboard",
-    page_icon="🌾",
+    page_title="👨‍🌾 Smart Crop Advisory Dashboard",
+    page_icon="👨‍🌾",
     layout="wide"
 )
 
-# --- Modern Tech Dashboard Theme Styling ---
+# --- Modern Tech Dashboard Styling ---
 st.markdown("""
     <style>
-        /* Import a clean modern font */
+        /* Import clean professional font */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
         html, body, [class*="css"] {
             font-family: 'Inter', sans-serif;
             background-color: #0f1117;  /* subtle dark background */
-            color: 'dark green';
+            color: #e5e5e5;
         }
 
         /* HEADER SECTION */
@@ -42,9 +44,9 @@ st.markdown("""
         }
 
         .logo-icon {
-            width: 58px;
+            width: 70px;
             height: auto;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             filter: drop-shadow(0px 0px 6px rgba(88, 189, 125, 0.3));
         }
 
@@ -92,12 +94,20 @@ st.markdown("""
     </style>
 
     <div class="main-header">
-        <img src="https://cdn-icons-png.flaticon.com/512/4151/4151076.png" class="logo-icon">
+        <!-- Farmer Icon -->
+        <img src="https://cdn-icons-png.flaticon.com/512/6195/6195699.png" class="logo-icon" alt="Farmer Icon">
         <div class="main-title">Smart Crop Advisory Dashboard</div>
         <div class="subtitle">Empowering Farmers with Data-Driven Insights</div>
     </div>
 """, unsafe_allow_html=True)
 
+# --- Example Footer ---
+st.markdown("""
+<div class="footer">
+    👨‍🌾 Developed by <b>Ashish Selokar</b> | Version 1.0 | Powered by AgricosE<br>
+    <small>Last Updated: Oct 2025</small>
+</div>
+""", unsafe_allow_html=True)
 
 
 
@@ -1769,6 +1779,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
