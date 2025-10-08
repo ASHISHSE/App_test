@@ -1205,7 +1205,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
+st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", layout="wide")
 st.markdown(
     "<span style='color: red; font-weight: bold;'>⚠️ Testing Version:</span> "
     "Data uploaded from <b>01 June 2024</b> to <b>31 Oct 2024</b>. "
@@ -1678,3 +1678,4 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
