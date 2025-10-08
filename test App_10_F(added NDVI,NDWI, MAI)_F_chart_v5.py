@@ -8,13 +8,8 @@ from io import BytesIO
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
-import streamlit as st
-
-import streamlit as st
-
-import streamlit as st
 from PIL import Image
+
 
 # --- Page Config ---
 st.set_page_config(
@@ -24,7 +19,7 @@ st.set_page_config(
 )
 
 # --- Load your uploaded icon ---
-icon_path = "2daa78c2-11b2-423e-85e3-cfa2d4df51fa.png"
+icon_path = "https://github.com/ASHISHSE/App_test/raw/main/icon.png"
 icon = Image.open(icon_path)
 
 # --- Modern Tech Dashboard Styling ---
@@ -107,6 +102,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# --- Example Footer ---
+st.markdown("""
+<div class="footer">
+    👨‍🌾 Developed by <b>Ashish Selokar</b> | Version 1.0 | Powered by AgricosE<br>
+    <small>Last Updated: Oct 2025</small>
+</div>
+""", unsafe_allow_html=True)
 
 
 
@@ -1779,6 +1781,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
