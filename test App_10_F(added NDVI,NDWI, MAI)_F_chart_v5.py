@@ -1331,17 +1331,17 @@ st.markdown("""
     font-size: 0.95rem;
 '>
     <span style='color: red; font-weight: 700;'>⚠️ Testing Version:</span>
-    <span style='color: #e9ecef;'>
+    <span style='color: blue;'>
         Data uploaded from <b>01 June 2024</b> to <b>31 Oct 2024</b>.
         Please select <b>(Sowing & Current)</b> dates within this range.
     </span>
     <br><br>
-    <span style='color: #9be5b2;'>
+    <span style='color: black;'>
         🔹 <b>Level of Selection:</b> You can select data from 
         <b>Circle → Taluka → District</b> level.
     </span>
     <br>
-    <span style='color: #b2f2bb;'>
+    <span style='color: black;'>
         🔸 You may also select only <b>District</b> or <b>Taluka</b> level if required.
     </span>
 </div>
@@ -1813,6 +1813,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
