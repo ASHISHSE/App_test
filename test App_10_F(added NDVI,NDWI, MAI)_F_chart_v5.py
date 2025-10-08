@@ -1777,7 +1777,7 @@ if generate:
 # -----------------------------
 st.markdown(
     """
-    <div style='text-align: center; font-size: 16px; margin-top: 20px;'>
+    <div class=footer; style='text-align: center; font-size: 16px; margin-top: 20px;'>
         💻 <b>Developed by:</b> Ashish Selokar <br>
         📧 For suggestions or queries, please email at:
         <a href="mailto:ashish111.selokar@gmail.com">ashish111.selokar@gmail.com</a> <br><br>
@@ -1785,13 +1785,14 @@ st.markdown(
             🌾 Empowering Farmers with Data-Driven Insights 🌾
         </span><br>
         <span style="font-size:13px; color:gray;">
-            Version 1.0 | Powered by Agricose | Last Updated: Sept 2025
+            Version 2.0 | Powered by Agricose | Last Updated: Sept 2025
         </span>
     </div>
     """,
     unsafe_allow_html=True
 
 )
+
 
 
 
