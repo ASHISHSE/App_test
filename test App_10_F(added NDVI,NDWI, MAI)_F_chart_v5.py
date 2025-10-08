@@ -21,6 +21,18 @@ st.set_page_config(
 # --- Load your uploaded icon ---
 icon_path = "https://github.com/ASHISHSE/App_test/main/icon.png"
 icon = Image.open(icon_path)
+# --- HEADER (using image from GitHub raw URL) ---
+st.markdown('<div class="main-header">', unsafe_allow_html=True)
+st.image(
+    "https://raw.githubusercontent.com/ASHISHSE/App_test/main/icon.png",
+    width=95
+)
+st.markdown("""
+    <div class="main-title">Smart Crop Advisory Dashboard</div>
+    <div class="subtitle">Empowering Farmers with Data-Driven Insights</div>
+</div>
+""", unsafe_allow_html=True)
+
 
 # --- Modern Tech Dashboard Styling ---
 st.markdown("""
@@ -1781,6 +1793,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
