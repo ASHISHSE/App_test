@@ -25,7 +25,7 @@ st.markdown("""
 
         html, body, [class*="css"] {
             font-family: 'Inter', sans-serif;
-            background-color: #0f1117;
+            background-color: green;
             color: green;
         }
 
@@ -1813,6 +1813,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
