@@ -61,6 +61,7 @@ st.markdown("""
             font-weight: 700;
             color: #74c69d;
             letter-spacing: 0.6px;
+            color: dark green;
             text-shadow: 0 0 10px rgba(116,198,157,0.25);
             margin-top: 15px;
         }
@@ -1813,6 +1814,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
