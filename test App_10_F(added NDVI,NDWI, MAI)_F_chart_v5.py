@@ -11,47 +11,76 @@ from plotly.subplots import make_subplots
 
 
 
-# Must be the first Streamlit command
-st.set_page_config(
-    page_title="🌾 Smart Crop Advisory Dashboard",
-    page_icon="🌾",
-    layout="wide"
-)
-
-# Custom Font & Header Styling
 st.markdown("""
     <style>
-        /* Import a professional font from Google Fonts */
+        /* Import professional font */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
-        html, body, [class*="css"]  {
+        html, body, [class*="css"] {
             font-family: 'Inter', sans-serif;
+            color: #e5e5e5;
         }
 
-        /* Stylish title */
+        /* Header logo + title container */
+        .main-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
         .main-title {
-            font-size: 2.3rem;
+            font-size: 2.4rem;
             font-weight: 700;
-            color: #1B4332;
-            text-align: center;
-            padding: 15px 0px 5px 0px;
+            color: #2d6a4f;
             letter-spacing: 0.5px;
+            text-align: center;
+            text-shadow: 0px 0px 6px rgba(45,106,79,0.25);
         }
 
-        /* Subheading style */
         .subtitle {
             font-size: 1.1rem;
-            color: #2D6A4F;
+            color: #74c69d;
             text-align: center;
+            margin-top: 2px;
             font-weight: 500;
-            margin-bottom: 25px;
+        }
+
+        /* Green button styling */
+        div.stButton > button:first-child {
+            background-color: #2d6a4f;
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 8px 20px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        div.stButton > button:hover {
+            background-color: #40916c;
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0px 2px 5px rgba(64,145,108,0.4);
+        }
+
+        /* Footer style */
+        .footer {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #adb5bd;
+            margin-top: 30px;
         }
     </style>
-""", unsafe_allow_html=True)
 
-# Attractive Title and Subtitle
-st.markdown('<div class="main-title">🌾 Smart Crop Advisory Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Empowering Farmers with Data-Driven Decisions</div>', unsafe_allow_html=True)
+    <div class="main-header">
+        <img src="https://cdn-icons-png.flaticon.com/512/4151/4151076.png" width="55">
+        <div class="main-title">Smart Crop Advisory Dashboard</div>
+        <div class="subtitle">Empowering Farmers with Data-Driven Decisions</div>
+    </div>
+""", unsafe_allow_html=True)
 
 
 # -----------------------------
@@ -1722,6 +1751,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
