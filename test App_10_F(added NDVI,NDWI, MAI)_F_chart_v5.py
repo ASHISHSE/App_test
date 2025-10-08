@@ -18,15 +18,6 @@ st.set_page_config(
     layout="wide"
 )
 
-
-# --- HEADER (using image from GitHub raw URL) ---
-st.markdown('<div class="main-header">', unsafe_allow_html=True)
-st.image(
-    "https://raw.githubusercontent.com/ASHISHSE/App_test/main/icon.png",
-    width=95
-)
-
-
 # --- Modern Tech Dashboard Styling ---
 st.markdown("""
     <style>
@@ -100,7 +91,10 @@ st.markdown("""
 
 # --- HEADER (with uploaded farmer-tech icon) ---
 st.markdown('<div class="main-header">', unsafe_allow_html=True)
-st.image(icon, use_container_width=False, output_format="PNG", width=95)
+st.image(
+    "https://raw.githubusercontent.com/ASHISHSE/App_test/main/icon.png",
+    width=95
+)
 st.markdown("""
     <div class="main-title">Smart Crop Advisory Dashboard</div>
     <div class="subtitle">Empowering Farmers with Data-Driven Insights</div>
@@ -1786,6 +1780,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
