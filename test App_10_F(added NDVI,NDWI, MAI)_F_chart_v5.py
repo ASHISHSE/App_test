@@ -13,6 +13,9 @@ import streamlit as st
 
 import streamlit as st
 
+import streamlit as st
+from PIL import Image
+
 # --- Page Config ---
 st.set_page_config(
     page_title="👨‍🌾 Smart Crop Advisory Dashboard",
@@ -20,19 +23,21 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- Load your uploaded icon ---
+icon_path = "2daa78c2-11b2-423e-85e3-cfa2d4df51fa.png"
+icon = Image.open(icon_path)
+
 # --- Modern Tech Dashboard Styling ---
 st.markdown("""
     <style>
-        /* Import clean professional font */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
         html, body, [class*="css"] {
             font-family: 'Inter', sans-serif;
-            background-color: #0f1117;  /* subtle dark background */
+            background-color: #0f1117;
             color: #e5e5e5;
         }
 
-        /* HEADER SECTION */
         .main-header {
             display: flex;
             flex-direction: column;
@@ -44,16 +49,17 @@ st.markdown("""
         }
 
         .logo-icon {
-            width: 70px;
+            width: 95px;
             height: auto;
             margin-bottom: 12px;
-            filter: drop-shadow(0px 0px 6px rgba(88, 189, 125, 0.3));
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(116,198,157,0.35);
         }
 
         .main-title {
             font-size: 2.6rem;
             font-weight: 700;
-            color: #74c69d;   /* Tech green */
+            color: #74c69d;
             letter-spacing: 0.5px;
             text-shadow: 0 0 8px rgba(116,198,157,0.25);
         }
@@ -66,7 +72,6 @@ st.markdown("""
             letter-spacing: 0.3px;
         }
 
-        /* ST BUTTON MODERN STYLE */
         div.stButton > button:first-child {
             background: linear-gradient(90deg, #2d6a4f, #52b788);
             color: white;
@@ -84,7 +89,6 @@ st.markdown("""
             box-shadow: 0 0 15px rgba(82,183,136,0.4);
         }
 
-        /* FOOTER STYLE */
         .footer {
             text-align: center;
             font-size: 0.85rem;
@@ -92,22 +96,18 @@ st.markdown("""
             margin-top: 40px;
         }
     </style>
-
-    <div class="main-header">
-        <!-- Farmer Icon -->
-        <img src="https://cdn-icons-png.flaticon.com/512/6195/6195699.png" class="logo-icon" alt="Farmer Icon">
-        <div class="main-title">Smart Crop Advisory Dashboard</div>
-        <div class="subtitle">Empowering Farmers with Data-Driven Insights</div>
-    </div>
 """, unsafe_allow_html=True)
 
-# --- Example Footer ---
+# --- HEADER (with uploaded farmer-tech icon) ---
+st.markdown('<div class="main-header">', unsafe_allow_html=True)
+st.image(icon, use_container_width=False, output_format="PNG", width=95)
 st.markdown("""
-<div class="footer">
-    👨‍🌾 Developed by <b>Ashish Selokar</b> | Version 1.0 | Powered by AgricosE<br>
-    <small>Last Updated: Oct 2025</small>
+    <div class="main-title">Smart Crop Advisory Dashboard</div>
+    <div class="subtitle">Empowering Farmers with Data-Driven Insights</div>
 </div>
 """, unsafe_allow_html=True)
+
+
 
 
 
@@ -1779,6 +1779,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
