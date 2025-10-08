@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # --- Load your uploaded icon ---
-icon_path = "https://github.com/ASHISHSE/App_test/blob/main/icon.png"
+icon_path = "https://github.com/ASHISHSE/App_test/main/icon.png"
 icon = Image.open(icon_path)
 
 # --- Modern Tech Dashboard Styling ---
@@ -1781,6 +1781,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
