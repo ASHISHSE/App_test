@@ -29,23 +29,24 @@ st.markdown("""
             color: #e5e5e5;
         }
 
+        /* Centered Responsive Header */
         .main-header {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            margin-top: 25px;
-            margin-bottom: 20px;
+            margin-top: 40px;
+            margin-bottom: 25px;
+            width: 100%;
         }
 
         .logo-icon {
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             object-fit: cover;
             border-radius: 50%;
-            margin-bottom: 15px;
-            box-shadow: 0 0 15px rgba(116,198,157,0.45);
+            box-shadow: 0 0 18px rgba(116,198,157,0.45);
             border: 2px solid rgba(116,198,157,0.3);
             transition: transform 0.4s ease, box-shadow 0.4s ease;
         }
@@ -56,27 +57,29 @@ st.markdown("""
         }
 
         .main-title {
-            font-size: 2.6rem;
+            font-size: clamp(1.8rem, 3vw, 2.8rem);
             font-weight: 700;
             color: #74c69d;
             letter-spacing: 0.6px;
             text-shadow: 0 0 10px rgba(116,198,157,0.25);
+            margin-top: 15px;
         }
 
         .subtitle {
-            font-size: 1.15rem;
+            font-size: clamp(1rem, 1.5vw, 1.2rem);
             color: #95d5b2;
             font-weight: 500;
-            margin-top: 6px;
+            margin-top: 8px;
             letter-spacing: 0.4px;
         }
 
+        /* Responsive Button Styling */
         div.stButton > button:first-child {
             background: linear-gradient(90deg, #2d6a4f, #52b788);
             color: white;
             border-radius: 8px;
             font-weight: 600;
-            padding: 0.5rem 1.2rem;
+            padding: 0.6rem 1.4rem;
             border: none;
             box-shadow: 0 0 10px rgba(45,106,79,0.3);
             transition: all 0.25s ease;
@@ -94,20 +97,29 @@ st.markdown("""
             color: #adb5bd;
             margin-top: 40px;
         }
+
+        /* Make sure header scales well on smaller devices */
+        @media (max-width: 768px) {
+            .main-header {
+                margin-top: 25px;
+                margin-bottom: 20px;
+            }
+            .logo-icon {
+                width: 90px;
+                height: 90px;
+            }
+        }
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER (with centered icon + title) ---
-st.markdown('<div class="main-header">', unsafe_allow_html=True)
-st.markdown(
-    f"""
-    <img src="https://raw.githubusercontent.com/ASHISHSE/App_test/main/icon.png" class="logo-icon" alt="Farmer Icon">
-    <div class="main-title">Smart Crop Advisory Dashboard</div>
-    <div class="subtitle">Empowering Farmers with Data-Driven Insights</div>
+# --- HEADER (Farmer icon above title & centered) ---
+st.markdown("""
+    <div class="main-header">
+        <img src="https://raw.githubusercontent.com/ASHISHSE/App_test/main/icon.png" class="logo-icon" alt="Farmer Icon">
+        <div class="main-title">Smart Crop Advisory Dashboard</div>
+        <div class="subtitle">Empowering Farmers with Data-Driven Insights</div>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
 
 
@@ -1780,6 +1792,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
