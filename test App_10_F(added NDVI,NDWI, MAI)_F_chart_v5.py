@@ -1330,7 +1330,7 @@ st.markdown("""
     margin-bottom: 20px;
     font-size: 0.95rem;
 '>
-    <span style='color: #ffba08; font-weight: 700;'>⚠️ Testing Version:</span>
+    <span style='color: red; font-weight: 700;'>⚠️ Testing Version:</span>
     <span style='color: #e9ecef;'>
         Data uploaded from <b>01 June 2024</b> to <b>31 Oct 2024</b>.
         Please select <b>(Sowing & Current)</b> dates within this range.
@@ -1813,6 +1813,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
