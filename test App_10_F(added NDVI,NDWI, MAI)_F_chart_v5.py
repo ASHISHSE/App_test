@@ -9,77 +9,101 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+import streamlit as st
 
+# --- Page Config ---
+st.set_page_config(
+    page_title="🌾 Smart Crop Advisory Dashboard",
+    page_icon="🌾",
+    layout="wide"
+)
 
+# --- Modern Tech Dashboard Theme Styling ---
 st.markdown("""
     <style>
-        /* Import professional font */
+        /* Import a clean modern font */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
         html, body, [class*="css"] {
             font-family: 'Inter', sans-serif;
+            background-color: #0f1117;  /* subtle dark background */
             color: #e5e5e5;
         }
 
-        /* Header logo + title container */
+        /* HEADER SECTION */
         .main-header {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-top: 10px;
-            margin-bottom: 20px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .logo-icon {
+            width: 58px;
+            height: auto;
+            margin-bottom: 10px;
+            filter: drop-shadow(0px 0px 6px rgba(88, 189, 125, 0.3));
         }
 
         .main-title {
-            font-size: 2.4rem;
+            font-size: 2.6rem;
             font-weight: 700;
-            color: #2d6a4f;
+            color: #74c69d;   /* Tech green */
             letter-spacing: 0.5px;
-            text-align: center;
-            text-shadow: 0px 0px 6px rgba(45,106,79,0.25);
+            text-shadow: 0 0 8px rgba(116,198,157,0.25);
         }
 
         .subtitle {
             font-size: 1.1rem;
-            color: #74c69d;
-            text-align: center;
-            margin-top: 2px;
+            color: #95d5b2;
             font-weight: 500;
+            margin-top: 4px;
+            letter-spacing: 0.3px;
         }
 
-        /* Green button styling */
+        /* ST BUTTON MODERN STYLE */
         div.stButton > button:first-child {
-            background-color: #2d6a4f;
+            background: linear-gradient(90deg, #2d6a4f, #52b788);
             color: white;
             border-radius: 8px;
             font-weight: 600;
-            padding: 8px 20px;
+            padding: 0.5rem 1.2rem;
             border: none;
-            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(45,106,79,0.3);
+            transition: all 0.25s ease;
         }
 
         div.stButton > button:hover {
-            background-color: #40916c;
-            color: #fff;
-            transform: translateY(-1px);
-            box-shadow: 0px 2px 5px rgba(64,145,108,0.4);
+            background: linear-gradient(90deg, #52b788, #2d6a4f);
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(82,183,136,0.4);
         }
 
-        /* Footer style */
+        /* FOOTER STYLE */
         .footer {
             text-align: center;
             font-size: 0.85rem;
             color: #adb5bd;
-            margin-top: 30px;
+            margin-top: 40px;
         }
     </style>
 
     <div class="main-header">
-        <img src="https://cdn-icons-png.flaticon.com/512/4151/4151076.png" width="55">
+        <img src="https://cdn-icons-png.flaticon.com/512/4151/4151076.png" class="logo-icon">
         <div class="main-title">Smart Crop Advisory Dashboard</div>
-        <div class="subtitle">Empowering Farmers with Data-Driven Decisions</div>
+        <div class="subtitle">Empowering Farmers with Data-Driven Insights</div>
     </div>
+""", unsafe_allow_html=True)
+
+# --- Example Footer ---
+st.markdown("""
+<div class="footer">
+    🌾 Developed by <b>Ashish Selokar</b> | Version 1.0 | Powered by AgricosE<br>
+    <small>Last Updated: Oct 2025</small>
+</div>
 """, unsafe_allow_html=True)
 
 
@@ -1751,6 +1775,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
