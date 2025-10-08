@@ -11,7 +11,7 @@ from plotly.subplots import make_subplots
 from PIL import Image
 
 
-# --- Page Config ---
+# --- Page Config --- 
 st.set_page_config(
     page_title="👨‍🌾 Smart Crop Advisory Dashboard",
     page_icon="👨‍🌾",
@@ -34,33 +34,41 @@ st.markdown("""
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-top: 20px;
-            margin-bottom: 10px;
             text-align: center;
+            margin-top: 25px;
+            margin-bottom: 20px;
         }
 
         .logo-icon {
-            width: 95px;
-            height: auto;
-            margin-bottom: 12px;
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
             border-radius: 50%;
-            box-shadow: 0 0 12px rgba(116,198,157,0.35);
+            margin-bottom: 15px;
+            box-shadow: 0 0 15px rgba(116,198,157,0.45);
+            border: 2px solid rgba(116,198,157,0.3);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .logo-icon:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 25px rgba(116,198,157,0.6);
         }
 
         .main-title {
             font-size: 2.6rem;
             font-weight: 700;
             color: #74c69d;
-            letter-spacing: 0.5px;
-            text-shadow: 0 0 8px rgba(116,198,157,0.25);
+            letter-spacing: 0.6px;
+            text-shadow: 0 0 10px rgba(116,198,157,0.25);
         }
 
         .subtitle {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             color: #95d5b2;
             font-weight: 500;
-            margin-top: 4px;
-            letter-spacing: 0.3px;
+            margin-top: 6px;
+            letter-spacing: 0.4px;
         }
 
         div.stButton > button:first-child {
@@ -89,19 +97,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER (with uploaded farmer-tech icon) ---
+# --- HEADER (with centered icon + title) ---
 st.markdown('<div class="main-header">', unsafe_allow_html=True)
-st.image(
-    "https://raw.githubusercontent.com/ASHISHSE/App_test/main/icon.png",
-    width=95
-)
-st.markdown("""
+st.markdown(
+    f"""
+    <img src="https://raw.githubusercontent.com/ASHISHSE/App_test/main/icon.png" class="logo-icon" alt="Farmer Icon">
     <div class="main-title">Smart Crop Advisory Dashboard</div>
     <div class="subtitle">Empowering Farmers with Data-Driven Insights</div>
-</div>
-""", unsafe_allow_html=True)
-
-
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 
 
@@ -1774,6 +1780,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
