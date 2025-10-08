@@ -101,13 +101,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- Example Footer ---
-st.markdown("""
-<div class="footer">
-    👨‍🌾 Developed by <b>Ashish Selokar</b> | Version 1.0 | Powered by AgricosE<br>
-    <small>Last Updated: Oct 2025</small>
-</div>
-""", unsafe_allow_html=True)
+
 
 
 
@@ -1780,6 +1774,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
