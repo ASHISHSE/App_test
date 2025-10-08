@@ -9,7 +9,16 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-st.set_page_config(page_title="🌱 Crop Advisory System", page_icon="🌱", layout="wide")
+# This MUST come before any other st. commands
+st.set_page_config(
+    page_title="🌱 Crop Advisory System",
+    page_icon="🌱",
+    layout="wide"
+)
+
+# Then start your app
+st.title("🌱 Crop Advisory System")
+st.write("Welcome to the Crop Advisory Dashboard.")
 
 # -----------------------------
 # LOAD DATA (WEATHER, RULES, SOWING) - UPDATED URLS
@@ -1685,5 +1694,6 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
