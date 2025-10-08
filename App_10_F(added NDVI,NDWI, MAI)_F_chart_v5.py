@@ -49,7 +49,7 @@ def load_data():
             date_col = candidate
             break
     if date_col is None:
-        #raise ValueError("weather.xlsb must have a column named 'Date(DD-MM-YYYY)' or similar")
+        raise ValueError("weather.xlsb must have a column named 'Date(DD-MM-YYYY)' or similar")
 
     weather_df["Date_dt"] = pd.to_datetime(weather_df[date_col], format="%d-%m-%Y", errors="coerce")
     weather_df = weather_df.dropna(subset=["Date_dt"]).copy()
@@ -1415,3 +1415,4 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
