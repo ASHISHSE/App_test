@@ -25,11 +25,6 @@ st.image(
     "https://raw.githubusercontent.com/ASHISHSE/App_test/main/icon.png",
     width=95
 )
-st.markdown("""
-    <div class="main-title">Smart Crop Advisory Dashboard</div>
-    <div class="subtitle">Empowering Farmers with Data-Driven Insights</div>
-</div>
-""", unsafe_allow_html=True)
 
 
 # --- Modern Tech Dashboard Styling ---
@@ -1791,6 +1786,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
