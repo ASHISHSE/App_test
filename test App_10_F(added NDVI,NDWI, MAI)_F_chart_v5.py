@@ -18,9 +18,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- Load your uploaded icon ---
-icon_path = "https://github.com/ASHISHSE/App_test/main/icon.png"
-icon = Image.open(icon_path)
+
 # --- HEADER (using image from GitHub raw URL) ---
 st.markdown('<div class="main-header">', unsafe_allow_html=True)
 st.image(
@@ -1793,6 +1791,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
