@@ -130,7 +130,7 @@ st.markdown("""
 @st.cache_data
 def load_data():
     # Updated URLs as per request
-    weather_url = "https://github.com/ASHISHSE/App_test/blob/main/weather_f_upload.xlsx"
+    weather_url = "https://github.com/ASHISHSE/App_test/raw/main/weather_f_upload.xlsx"
     rules_url = "https://github.com/ASHISHSE/App_test/raw/main/rules - Copy_F.xlsx"
     sowing_url = "https://github.com/ASHISHSE/App_test/raw/main/sowing_calendar1_f_upload.xlsx"
 
@@ -1813,6 +1813,7 @@ st.markdown(
     unsafe_allow_html=True
 
 )
+
 
 
 
